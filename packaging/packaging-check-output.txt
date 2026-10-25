@@ -1,0 +1,63 @@
+33 components, 19 repos
+
+ADP (cycles): none
+
+component                Ca  Ce     I     A    Dp  flag
+hub-contracts             5   0  0.00  1.00  0.00  
+ocpi-model               19   0  0.00  0.85  0.15  
+edge-api                  3   0  0.00  1.00  0.00  
+consent-contracts         8   0  0.00  0.90  0.10  
+data-contracts            1   0  0.00  1.00  0.00  
+trust-contracts           2   0  0.00  1.00  0.00  
+mcs-contracts             2   0  0.00  1.00  0.00  
+policy-api                7   1  0.12  1.00  0.12  
+pricing-api               6   1  0.14  1.00  0.14  
+plugcharge-api            4   1  0.20  1.00  0.20  
+telemetry-api             4   1  0.20  1.00  0.20  
+payments-api              3   1  0.25  1.00  0.25  
+planner-api               3   1  0.25  1.00  0.25  
+hub-core                  3   2  0.40  0.30  0.30  review
+ocpi-emsp-server          0   3  1.00  0.05  0.05  
+policy-server             0   3  1.00  0.05  0.05  
+pricing-server            0   2  1.00  0.05  0.05  
+payments-server           0   3  1.00  0.05  0.05  
+plugcharge-server         0   3  1.00  0.05  0.05  
+telemetry-server          0   2  1.00  0.05  0.05  
+planner-server            0   5  1.00  0.05  0.05  
+hub-hubject               0   6  1.00  0.05  0.05  
+hub-gireve                0   6  1.00  0.05  0.05  
+hub-echx                  0   5  1.00  0.05  0.05  
+simulator                 0   2  1.00  0.05  0.05  
+pilot-analytics           0   5  1.00  0.02  0.02  
+api-gateway-server        0   8  1.00  0.05  0.05  
+mobile-ios                0   1  1.00  0.05  0.05  
+mobile-android            0   1  1.00  0.05  0.05  
+consent-edevlet-bridge    0   2  1.00  0.05  0.05  
+consent-testkit           0   1  1.00  0.02  0.02  
+data-reference            0   2  1.00  0.10  0.10  
+mcs-reference             0   2  1.00  0.10  0.10  
+
+SDP violations (a component depends on a less stable one, I(dep) > I(self)):
+  none
+
+Repo roll-up (mean over components; I of a repo from its cross-repo edges):
+repo                               comps  Ca  Ce     I
+EV_PNC_api-gateway                     2   2   7  0.78
+EV_PNC_hub-contracts                   1   5   0  0.00
+EV_PNC_hub-gateway                     4   0   5  1.00
+EV_PNC_mobile                          2   0   1  1.00
+EV_PNC_national-consent                2   1   1  0.50
+EV_PNC_national-data                   3   1   0  0.00
+EV_PNC_ocpi-emsp                       1   0   3  1.00
+EV_PNC_ocpi-model                      1  19   0  0.00
+EV_PNC_payments                        2   2   2  0.50
+EV_PNC_pilot-analytics                 1   0   5  1.00
+EV_PNC_planner                         2   2   4  0.67
+EV_PNC_plugcharge                      2   3   2  0.40
+EV_PNC_policy-engine                   2   6   2  0.25
+EV_PNC_pricing                         2   5   1  0.17
+EV_PNC_simulator                       1   0   2  1.00
+EV_PNC_telemetry                       2   3   1  0.25
+EV_PnC_Consent_contracts               1   8   0  0.00
+EV_PnC_Consent_edevlet-bridge          1   0   2  1.00
+EV_PnC_Consent_testkit                 1   0   1  1.00
