@@ -1,0 +1,12 @@
+component,repo,kind,abstractness,depends_on
+ocpi-emsp,EV_PNC_ocpi-emsp,model plus server in one component,0.05,policy-engine;plugcharge;payments;consent
+policy-engine,EV_PNC_policy-engine,deployable,0.05,ocpi-emsp
+plugcharge,EV_PNC_plugcharge,deployable,0.05,ocpi-emsp
+payments,EV_PNC_payments,deployable,0.05,ocpi-emsp
+consent,EV_PNC_consent,deployable,0.05,ocpi-emsp
+roaming-hubs,EV_PNC_roaming-hubs,deployable,0.05,ocpi-emsp;plugcharge;policy-engine;payments
+telemetry,EV_PNC_telemetry,deployable,0.05,ocpi-emsp
+planner,EV_PNC_planner,deployable,0.05,telemetry;policy-engine
+api-gateway,EV_PNC_api-gateway,deployable,0.05,planner;policy-engine;payments;plugcharge;consent;telemetry
+mobile,EV_PNC_mobile,app,0.05,api-gateway
+simulator,EV_PNC_simulator,test tooling,0.05,ocpi-emsp;roaming-hubs
