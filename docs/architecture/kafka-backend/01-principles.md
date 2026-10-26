@@ -1,6 +1,6 @@
 # EV_PNC architecture principles: Data, Application, Technology
 
-**Version:** 0.1 · **Date:** 2026-10-26 · **Status:** proposed, accepted by the product owner on card X-01 · **Scope:** the EV_PNC_ platform and, where they share the Kafka cluster, the EV_PnC_Consent_ services
+**Version:** 0.2 (audit 2026-10-26, changes listed at the end) · **Date:** 2026-10-26 · **Status:** proposed, accepted by the product owner on card X-01 · **Scope:** the EV_PNC_ platform and, where they share the Kafka cluster, the EV_PnC_Consent_ services
 **Frame:** TOGAF. The squad agents read BDAT as Business, Data, Application, Technology (an assumption, see `squad-agents-ev-pnc-squad`). Principles follow the TOGAF template: **Name, Statement, Rationale, Implications**, plus a **Check** (a fitness function that says where it runs), so a principle that cannot be tested stays a wish.
 **Business principles** are not rewritten here. They already exist and these principles assume them: the platform is a neutral eMSP, not a CPO and not a payment institution; it is hub-ready and not hub-dependent; the pilot does not depend on state services (NHS-ADR-05); the guest price is B2B cost plus fixed margin plus VAT (ADR-0006).
 **Sources:** apache-kafka, microservices-and-ddd (with evans-ddd), algorithms-data-structures (with the TheAlgorithms-Java and Liang libraries), java-spring-boot (with spring-boot-in-practice security/REST/reactive), aws-waf-sustainability, architecture-review. Tags such as (K 05a) point to the skill chapter.
@@ -38,8 +38,8 @@ A good principle is understandable, robust, complete, consistent and stable (TOG
 ### DP-5 Personal data stays off the log
 - **Statement:** Topics carry public or pseudonymous data only. No VIN, plate, national ID, phone, e-mail, name, card number, raw location trace or registration-document image. People and cars appear as opaque references (`driverRef`, `vehicleRef`); resolving one goes through the owning service's API under authorization.
 - **Rationale:** The log is immutable and replicated three times. Erasure and cross-border duties (KVKK Art. 9) are manageable when personal data lives in few places. **Pseudonymous is still personal data**, so the class limits exposure and does not remove duties.
-- **Implications:** Details and the erasure path are in ADR-0013. Keys of topics are never personal identifiers.
-- **Check:** `eventflow_check` R3 and R6; the schema linter fails a field tagged `pii`; erasure drill (tombstone, then compaction within the agreed lag); DPO sample review each wave.
+- **Implications:** Details and the erasure path are in ADR-0013. Keys of topics are never personal identifiers. A compacted topic is keyed by the aggregate whose full state it carries (ADR-0010 item 5), and sets `max.compaction.lag.ms` so erasure has a bound.
+- **Check:** `eventflow_check` R3, R6 and R8; the schema linter fails a field tagged `pii`; erasure drill (tombstone, then compaction within the agreed lag); DPO sample review each wave.
 
 ### DP-6 Every dataset has a class, an owner and an expiry
 - **Statement:** A topic, table, bucket or log stream exists only with a data class, an owner and a retention rule that ends in deletion.
@@ -128,13 +128,13 @@ A good principle is understandable, robust, complete, consistent and stable (TOG
 ### TP-1 Open standards and open source first, portable by construction
 - **Statement:** Prefer OCPI, OICP, ISO 15118, OAuth 2.0 and OIDC, the Kafka protocol, OpenTelemetry, SQL. Public repositories are Apache-2.0, so dependencies must be compatible with that.
 - **Rationale:** The platform must run in a Turkey region first and may move. Hubs and EPDK expect standards.
-- **Implications:** Application code uses the Kafka API only, never a vendor extension. Operators and Helm charts run on any conformant Kubernetes. Check licences when a component changes licence (Redis moved off a permissive licence in 2024; Valkey is the permissive fork; verify before choosing).
+- **Implications:** Application code uses the Kafka API only, never a vendor extension. Operators and Helm charts run on any conformant Kubernetes. Check licences when a component changes licence (Redis left the BSD licence in 2024 and added AGPLv3 as an option with Redis 8 in 2025; Valkey stays BSD; verify before choosing).
 - **Check:** dependency licence scan in CI; a monthly "can we move" review reading the infra modules.
 
 ### TP-2 One paved road: the JVM, with written reasons for anything else
-- **Statement:** Backend services are Kotlin on a JDK 21 LTS or newer and Spring Boot 3, using Spring MVC with virtual threads. Other runtimes need a one-paragraph reason in an ADR.
+- **Statement:** Backend services are Kotlin on JDK 25 LTS and Spring Boot 4.x, using Spring MVC with virtual threads. Other runtimes need a one-paragraph reason in an ADR.
 - **Rationale:** Two or three people (or agent roles) must maintain everything. Reactive code is chosen only end to end and for cost, not for speed (SB 02d, 03d).
-- **Implications:** Exceptions today: planner in Python (OR-Tools and NumPy), mobile apps native, `api-gateway` on Spring Cloud Gateway (reactive, where many concurrent I/O-bound connections justify it). `telemetry` moves from Go to the JVM unless a measurement says otherwise (ADR-0012).
+- **Implications:** Exceptions today: planner in Python (OR-Tools and NumPy), mobile apps native, `api-gateway` on Spring Cloud Gateway (reactive, where many concurrent I/O-bound connections justify it). `telemetry` stays Go for now because C-01 is already written in Go (ADR-0012 revision 0.2); Go and Python services meet the same outbox, header and redelivery contract tests as the JVM template.
 - **Check:** `docs/stack.md` lists each service's runtime; an ADR link is required for anything else.
 
 ### TP-3 Right store for the job
@@ -174,3 +174,13 @@ A good principle is understandable, robust, complete, consistent and stable (TOG
 - **Rationale:** AWS SUS02, SUS04, SUS05 and the cost-sustainability link (SUS06-BP01). Tension recorded: SUS05-BP03 prefers managed services; residency and portability make us run Kafka ourselves (ADR-0009).
 - **Implications:** Proxy metrics: CPU-seconds and GB stored per 1,000 sessions, per service. Multi-arch (amd64 and arm64) images so cheaper or more efficient instances stay possible. Region choice: business requirement first (residency), then provider energy data (SUS01-BP01).
 - **Check:** the proxy-metric dashboard exists by the pilot gate; preproduction idle-to-zero job runs.
+
+---
+
+## Changes in 0.2 (audit, 2026-10-26)
+
+| Principle | Change | Why |
+|---|---|---|
+| DP-5 | Compacted topics keyed by the aggregate id; bounded compaction lag; check R8 added | The v0.1 catalogue keyed grants by `driverRef`, which compaction collapses to one grant per driver; without `max.compaction.lag.ms` erasure had no bound |
+| TP-1 | Redis licence note updated (AGPLv3 option since Redis 8) | Accuracy |
+| TP-2 | JDK 25 LTS and Spring Boot 4.x instead of JDK 21 and Boot 3; telemetry stays Go | Boot 3.5 left open-source support on 30 Jun 2026; JDK 24+ removes `synchronized` pinning of virtual threads (JEP 491); C-01 is already Go (COPUR/EV_PNC_telemetry#2) |

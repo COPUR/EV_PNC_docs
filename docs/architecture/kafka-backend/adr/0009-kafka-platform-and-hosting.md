@@ -1,6 +1,6 @@
 # ADR-0009: Kafka platform: KRaft on Kubernetes with Strimzi, one durability profile, Turkey-hosted
 
-**Status:** proposed (accept on card X-01; hosting provider open) · **Date:** 2026-10-26
+**Status:** proposed (accept on card X-01; hosting provider open) · **Date:** 2026-10-26 · **Revision:** 0.2 (audit 2026-10-26: consumer rebalance protocol and compaction lag added)
 
 **Context.** Consent data and its backups must run in Türkiye (RC-NFR-002), and card P1-02 plans Kubernetes in a Turkey region. No provider is chosen. The consent plan reuses a shared EV_PNC Kafka with its own topics, ACLs and partitions. AWS Well-Architected is a review lens only. The load is small (ADR-0008), so the cluster is sized for durability and operability.
 
@@ -22,5 +22,7 @@
 - Alerts: UnderReplicatedPartitions above 0, ISR shrink thrash, consumer lag against each consumer's SLO, revocation-to-hub time, disk growth. The disk and request-time breakdown (queue, local, remote, response) guide the first diagnosis (K 05a).
 - Sharing the cluster with the consent family needs quotas and ACLs so one tenant cannot starve the other. Dedicated cluster if the consent family needs its own SLO class.
 - Version pins and the Strimzi, Kafka and client compatibility are verified in spike X-02 before any production claim.
+- Consumer groups: Kafka 4.x ships the new consumer rebalance protocol (KIP-848, `group.protocol=consumer`), where the broker assigns partitions and client-side assignors such as cooperative-sticky do not apply. X-02 tests it with static membership and adopts it if the Spring for Apache Kafka line in use supports it; otherwise the classic protocol with cooperative-sticky stays (I, from knowledge; confirm in the spike).
+- Compacted topics set `max.compaction.lag.ms` [1 d] as well as `segment.ms` 1 d. Without it the cleaner only runs when the dirty ratio passes `min.cleanable.dirty.ratio` (0.5 by default), so on a quiet topic a tombstone may never take effect and the erasure lag in ADR-0013 has no bound.
 
 **Sources.** apache-kafka (05a durability triad, 06a, 01c, 02c, 07a); aws-waf-sustainability (SUS01-BP01, SUS05-BP03); `repo-plan/consent/README.md` §3, §4; `national-hub-service/02-HLD.md` §6; RC-NFR-002.

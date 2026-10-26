@@ -1,6 +1,6 @@
 # ADR-0013: Personal data on the log: classes, what may be published, erasure
 
-**Status:** proposed; the DPO and counsel review it (cards X-09, K-01, TR-05) · **Date:** 2026-10-26
+**Status:** proposed; the DPO and counsel review it (cards X-09, K-01, TR-05) · **Date:** 2026-10-26 · **Revision:** 0.2 (audit 2026-10-26: bounded compaction lag, who mints references, e-Devlet pairwise ids)
 
 **Context.** Kafka topics are replicated three times and, by design, hard to edit. KVKK sets duties on retention, access and transfer (Art. 9). The corridor spec reduces location traces to H3 resolution 8 after 90 days (CP-KPI-004). Receipts and the audit trail in the consent family are kept [10] years unless counsel says otherwise (RC-NFR-002), and that store is the record, not Kafka. Vehicle identity carries VIN and registration data, owner data and payment links, some of which must never be broadcast.
 
@@ -10,11 +10,12 @@
 1. **Classes** for every dataset: `public`, `pseudonymous`, `personal`, `restricted` (payment, ownership, consent evidence). Only `public` and `pseudonymous` may appear on a topic.
 2. **Pseudonymous is still personal data** under KVKK and GDPR. It lowers exposure; it does not remove the duty to have a basis, a retention rule and an access rule.
 3. **Never on Kafka:** VIN, plate, national ID or tax number, phone, e-mail, name, address, card number, IBAN, registration-document images, raw location traces, OBD2 data, free text typed by a person.
-4. **References:** `driverRef` and `vehicleRef` are random identifiers minted by the owning service at registration. They are not derived from a phone number, VIN or plate. Resolving one is an API call under authorization. The invoice recipient is resolved by the recipient resolver at issue time (owner on the session date), never from a plate alone.
+4. **References:** `driverRef` and `vehicleRef` are random identifiers minted at registration, `driverRef` by the account service (the OIDC provider's account record, the only place that maps it to a person; open item: confirm the owner on P0-16) and `vehicleRef` by `plugcharge`. They are not derived from a phone number, VIN or plate. Resolving one is an API call under authorization. The invoice recipient is resolved by the recipient resolver at issue time (owner on the session date), never from a plate alone.
 5. **Keys** are never personal identifiers; the checker rejects them.
 6. **Retention:** volume 7 d, business facts 30 d, state topics compacted. Longer retention lives in the owner's store with its own lifecycle.
-7. **Erasure:** delete the mapping (`driverRef` to person) in the owning service; the log then holds unlinkable data. For compacted state topics also publish a tombstone; set `segment.ms` 1 d and `delete.retention.ms` 1 d so compaction removes it in about [3] days. Rehearse in the erasure drill.
+7. **Erasure:** delete the mapping (`driverRef` to person) in the owning service; the log then holds unlinkable data. For compacted state topics also publish a tombstone for every key of that person (each `grantId`, `vehicleRef`, `emaid`), and set `segment.ms` 1 d, `max.compaction.lag.ms` [1 d] and `delete.retention.ms` 1 d, so the old values are gone in about [3] days whatever the topic's traffic. Without `max.compaction.lag.ms` a quiet topic may never be compacted. Rehearse in the erasure drill.
 8. **Location:** positions go to `planner` over HTTP, are stored there with the 90-day reduction, and never reach a topic. Only `arrival-observed` (pseudonymous trip, EVSE) and trip state do.
+9a. **e-Devlet references:** the state service gives each recipient a different opaque citizen id (Solution design of the e-Devlet request doc). That id lives only in `edevlet-bridge`, mapped to our `driverRef`; it never goes on a topic, and erasure deletes the mapping.
 9. **Logs and traces:** no personal data; trace ids and `correlationid` only.
 10. **Transfers:** hub-bound data leaves through `hub-gateway` after the consent decision (RC-GATE-001..004), under the standard-contract basis counsel confirms (TR-05). Kafka itself stays in Türkiye.
 

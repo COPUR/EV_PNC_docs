@@ -11,14 +11,19 @@ Rules checked:
   R5 delete topics have a retention; compacted topics have none
   R6 personal data class never appears on a topic: only public or pseudonymous
   R7 event-flow graph (owner -> consumer): strongly connected components must be declared feedback loops
+  R8 a compacted topic keyed by a person-level reference (driverRef, accountId) keeps one record per person,
+     so its note must say the value is the full state of that person; otherwise key by the aggregate id
+     (v0.2: added after the audit found grant-changed keyed by driverRef, which compaction would collapse
+     to the last grant per driver)
 """
 import csv, sys
 from collections import defaultdict
 
-SERVICES = {"ocpi-emsp", "hub-gateway", "plugcharge", "consent-registry", "consent-decision", "consent-audit",
+SERVICES = {"ocpi-emsp", "hub-gateway", "plugcharge", "consent-registry", "consent-decision", "consent-audit", "edevlet-bridge",
             "policy-engine", "pricing", "payments", "planner", "telemetry", "loyalty", "invoicing",
             "pilot-analytics", "api-gateway"}
 PII_KEYS = {"vin", "plate", "tckn", "vkn", "phone", "email", "name", "pan", "iban"}
+PERSON_LEVEL_KEYS = {"driverref", "accountid"}
 DECLARED_LOOPS = [frozenset({"planner", "telemetry"})]  # arrivals feed occupancy profiles, availability feeds planning
 
 rows = list(csv.DictReader(open(sys.argv[1])))
@@ -34,6 +39,8 @@ for r in rows:
         g[o].add(c)
     if r["cleanup"] == "compact" and not r["key"]: fail.append(f"R3 {t}: compacted without key")
     if r["key"].lower() in PII_KEYS: fail.append(f"R3 {t}: personal identifier as key")
+    if r["cleanup"] == "compact" and r["key"].lower() in PERSON_LEVEL_KEYS and "full" not in r["note"].lower():
+        fail.append(f"R8 {t}: compacted on person-level key {r['key']} without a full-state value; key by the aggregate id")
     if int(r["partitions"]) not in (6, 12, 24): fail.append(f"R4 {t}: partitions {r['partitions']}")
     if (r["cleanup"] == "delete") == (not r["retention"]): fail.append(f"R5 {t}: cleanup {r['cleanup']} with retention '{r['retention']}'")
     if r["data_class"] not in ("public", "pseudonymous"): fail.append(f"R6 {t}: data class {r['data_class']}")
