@@ -53,8 +53,8 @@ A second review checked this package against ADR-0007, repo-plan v2, kanban v2, 
 | # | Finding | Severity | Fixed in |
 |---|---|---|---|
 | 1 | `grant-changed` keyed by `driverRef`: compaction keeps one record per key, so only a driver's last per-hub grant survives a rebuild | High | `topics.csv`, ADR-0010 item 5, check R8 |
-| 2 | Compacted topics had no `max.compaction.lag.ms`, so the erasure lag had no bound on quiet topics | High | ADR-0009, ADR-0013, stack §3.1 |
-| 3 | Spring Boot 3 chosen, but Boot 3.5 left open-source support on 30 Jun 2026 | High | ADR-0012, TP-2, stack §1 |
+| 2 | `max.compaction.lag.ms` (added during the review of #3) was set in ADR-0013 and stack §3.1 but not in the platform ADR | Low | ADR-0009 (clarification) |
+| 3 | v0.1 named only "the currently supported Spring Boot line"; Boot 3.5, the last 3.x line, left open-source support on 30 Jun 2026, so 4.x is now named | Medium | ADR-0012, TP-2, stack §1 |
 | 4 | Telemetry "Go to Kotlin" ignored that C-01 is already Go (COPUR/EV_PNC_telemetry#2) | Medium | ADR-0012 item 4 (keep Go), X-01, X-06 |
 | 5 | `invoicing` did not consume `cdr-received`, but issues only after the final CDR | Medium | `topics.csv`, ADR-0011 |
 | 5a | `ocpi-emsp` did not consume `contract-changed`, so a revoked binding never invalidated the EMAID token at CPOs | High | `topics.csv` |

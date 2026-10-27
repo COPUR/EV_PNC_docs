@@ -129,7 +129,7 @@ Notes on the catalogue:
 - **Changed in 0.2:** `invoicing` consumes `cdr-received`. The invoice needs the final CDR's lines and waits for both CDR and capture (loyalty-invoicing design notes).
 - **Changed in 0.2:** `ocpi-emsp` consumes `contract-changed`. Without it a revoked binding never reached the CPOs: `ocpi-emsp` owns the token sync, but v0.1 only fed it grants and policies.
 - **New in 0.2:** `ev.edevlet.upstream-grant-changed.v1`, planned for wave 3 with `edevlet-bridge`. The bridge never writes `ev.consent.*`; the registry stays the single writer (ADR-0007, ADR-0010 item 11).
-- It is a draft v0.1 derived from the sequences in the briefing and the specs. The Architect agent confirms owners and consumers on X-04.
+- It is a draft v0.2 derived from the sequences in the briefing and the specs. The Architect agent confirms owners and consumers on X-04.
 - `ev.policy.policy-changed.v1` is new. The deck calls `policy-engine` synchronously from `hub-gateway`; an event-fed lookup keeps that call out of the 10 s authorize window.
 - Raw location traces never go on Kafka. The app sends positions to `planner` over HTTP, and only `arrival-observed` and `trip-state-changed` leave it.
 - `consent-audit` never reads the compacted `grant-changed`: compaction could fold an active, revoked, active sequence into its last value while the consumer is down, and the revocation evidence (RC-REV-002) would never reach the record. `consent-registry` publishes every transition through its outbox to `ev.consent.grant-event-logged.v1` as well, a delete topic with 30 days keyed by `grantId`, so the transitions of one grant reach the audit store in order.
@@ -203,7 +203,7 @@ With two status channels per socket, as in the pilot row, status alone is about 
 ## 8. Inconsistencies found in the existing plan
 
 1. **Missing repos.** Eight cards (L-04, L-05, L-07, L-12 and V-04 to V-07) point at `EV_PNC_loyalty` and `EV_PNC_invoicing`, which are not in the 19-repo plan or in `components.csv`. The packaging check with both added (`tools/components_v2_1.csv`) still has no cycle, 21 repos in all. Suggested card X-12.
-2. **Telemetry runtime.** The README says Go; the rest of the platform is Kotlin. ADR-0012 proposes the JVM for one runtime less. Your decision.
+2. **Telemetry runtime.** The README says Go; the rest of the platform is Kotlin. v0.1 of ADR-0012 proposed the JVM for one runtime less; revision 0.2 recommends keeping Go (item 6). X-01 decides.
 3. **Vehicle identity** is a separate container in the deck and a module of `plugcharge` in the repo plan. This document follows the repo plan.
 4. **ADR numbering.** P0-05 is titled "ADR-001" while the series runs ADR-0001 to ADR-0007. Rename it when it is written.
 5. **Kafka in the national plan.** The NHS HLD names Kafka for the public side too; that cluster is the public bodies' to run, not ours. This stack covers the EV_PNC_ and Consent services only.
@@ -216,7 +216,7 @@ With two status channels per socket, as in the pilot row, status alone is about 
 
 ## 9. Limits
 
-- Versions are not pinned. Kafka 4.x, Spring Boot 4.x, Spring for Apache Kafka and Spring Modulith 2.x need a compatibility check in X-02 and X-05, and X-05 must confirm the chosen Spring Boot line is inside its open-source support window before ADR-0012 is accepted; nothing was run here.
+- Versions are not pinned. Kafka 4.x, Spring Boot 4.x, Spring for Apache Kafka and Spring Modulith 2.x need a compatibility check in X-02 and X-05; X-02 confirms the pinned Spring Boot line is inside its open-source support window, the condition on which X-01 accepts ADR-0012; nothing was run here.
 - Apicurio's Confluent-compatible API and Spring Modulith's Kafka externalisation are from my knowledge, not from the skills; the spikes confirm them.
 - Topic catalogue, sizes and budgets are estimates. Hub behaviour (Hubject's 10 s, GIREVE PNCP 1.2.0) is unconfirmed in the project files.
 - I did not benchmark anything. The pilot load figures come from the spec assumptions above.

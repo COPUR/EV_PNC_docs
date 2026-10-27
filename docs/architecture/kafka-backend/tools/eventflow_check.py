@@ -13,7 +13,7 @@ Rules checked:
   R6 personal data class never appears on a topic: only public or pseudonymous
   R7 event-flow graph (owner -> consumer): strongly connected components must be declared feedback loops
   R8 a compacted topic keyed by a person-level reference (driverRef, accountId) keeps one record per person,
-     so its note must say the value is the full state of that person; otherwise key by the aggregate id
+     so its note must declare the value "full-state" (the whole state of that person); otherwise key by the aggregate id
      (v0.2: added after the audit found grant-changed keyed by driverRef, which compaction would collapse
      to the last grant per driver)
 """
@@ -25,7 +25,9 @@ SERVICES = {"ocpi-emsp", "hub-gateway", "plugcharge", "consent-registry", "conse
             "pilot-analytics", "api-gateway"}
 PII_KEYS = {"vin", "plate", "tckn", "vkn", "national", "phone", "msisdn", "mobile", "gsm", "email", "name",
             "address", "pan", "iban"}
-PERSON_LEVEL_KEYS = {"driverref", "accountid"}
+# Person-level keys as sorted key words: driverRef and driver_ref -> "driverref", accountId -> "accountid".
+PERSON_LEVEL_KEYS = {"".join(sorted(w)) for w in ({"driver", "ref"}, {"account", "id"})}
+FULL_STATE = re.compile(r"\bfull-state\b", re.I)  # R8 waiver: the note declares the value as the full state
 DECLARED_LOOPS = [frozenset({"planner", "telemetry"})]  # arrivals feed occupancy profiles, availability feeds planning
 
 def key_words(key):
@@ -49,7 +51,8 @@ for r in rows:
         g[o].add(c)
     if r["cleanup"] == "compact" and not r["key"]: fail.append(f"R3 {t}: compacted without key")
     if key_words(r["key"]) & PII_KEYS: fail.append(f"R3 {t}: personal identifier in key {r['key']}")
-    if r["cleanup"] == "compact" and r["key"].lower() in PERSON_LEVEL_KEYS and "full" not in r["note"].lower():
+    if r["cleanup"] == "compact" and "".join(sorted(key_words(r["key"]))) in PERSON_LEVEL_KEYS \
+            and not FULL_STATE.search(r["note"]):
         fail.append(f"R8 {t}: compacted on person-level key {r['key']} without a full-state value; key by the aggregate id")
     if int(r["partitions"]) not in (6, 12, 24): fail.append(f"R4 {t}: partitions {r['partitions']}")
     if r["cleanup"] not in ("delete", "compact"): fail.append(f"R5 {t}: unknown cleanup '{r['cleanup']}'")

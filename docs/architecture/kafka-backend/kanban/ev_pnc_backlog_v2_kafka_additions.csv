@@ -11,6 +11,7 @@ E3 OCPI eMSP core platform and infra,X-02,"Spike: Kafka 4.x KRaft with Strimzi, 
 - [ ] Strimzi, Kafka, client and Spring Modulith versions pinned and compatible; findings recorded in ADR-0009
 - [ ] KIP-848 consumer protocol tested with static membership, or the reason to stay on the classic protocol recorded
 - [ ] max.compaction.lag.ms set on compacted topics; a tombstone on a quiet topic is compacted within the bound
+- [ ] Spring Boot 4.x line pinned in infra-modules and its open-source support window confirmed (condition for ADR-0012)
 - [ ] Decision by 20 Dec: keep Kafka for the pilot or use the Postgres-outbox fallback of ADR-0008"
 E3 OCPI eMSP core platform and infra,X-03,"Apicurio registry and the first three Avro schemas (location, tariff, EVSE status) for P1-07",Backlog,I4,Phase 1 Core backend,EV_PNC_ocpi-model,Architect agent,3,no,M-01;X-02,phase-1;architect-agent;v2-new;kafka;it:I4,"Acceptance criteria:
 - [ ] Registry runs with BACKWARD_TRANSITIVE and the Confluent-compatible API
@@ -44,7 +45,7 @@ E3 OCPI eMSP core platform and infra,X-08,"hub-gateway local read model from bin
 - [ ] ev.policy.policy-changed.v1 replaces the synchronous policy call, or the deviation is recorded"
 "E1 Legal, compliance and consent",X-09,"Event privacy: data-class lint, no-personal-key rule, erasure drill with the DPO",Backlog,later,Phase 1 Core backend,EV_PNC_docs,Compliance agent,3,yes,X-03;K-01,phase-1;compliance-agent;v2-new;kafka;human-gate;waits-external;it:later,"Acceptance criteria:
 - [ ] Schema linter fails a field tagged pii; checker rejects personal keys
-- [ ] Erasure drill: delete mapping, tombstone every key of the person (grantId, vehicleRef, emaid), compaction within the agreed lag [3 days] with max.compaction.lag.ms set
+- [ ] Erasure drill: delete mapping, tombstone every key of the person (grantId, vehicleRef, emaid, tokenUid, upstreamGrantId, and driverRef on policy-changed), compaction within the agreed lag [3 days] with max.compaction.lag.ms set
 - [ ] DPO sample review of one topic per wave; sign-off stored in the repo
 - [ ] Platform data inventory (P0-17) lists each topic with class and expiry"
 E3 OCPI eMSP core platform and infra,X-10,"Baseline load test and sizing: from defaults, one lever per run, median of three, P99 reported",Backlog,later,Phase 1 Core backend,EV_PNC_infra,QA agent,3,no,X-02;X-05,phase-1;qa-agent;v2-new;kafka;it:later,"Acceptance criteria:
