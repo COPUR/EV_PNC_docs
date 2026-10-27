@@ -72,7 +72,7 @@ Same columns as the loyalty additions file, epics included.
 The board says "no new card without dropping one" until the 7 December gate. I3 (23 Nov to 6 Dec) carries 54 points and five PO-action gates, against a limit of six.
 
 - **Put only X-01 (2 points) in I3.** It makes I3 six PO gates, the limit.
-- **Move X-02 and X-03 to I4** (from 7 Dec). No K1 to K9 criterion needs Kafka, and P1-07 can write its change events to the outbox table now and switch the relay on after X-02 (amendment above). v0.1 put both spikes in I3.
+- **Move X-02 and X-03 to I4** (from 7 Dec). No K1 to K9 criterion needs Kafka, and P1-07 can write its change events to the outbox table now and switch the relay on after X-02 (amendment above). Rows written before X-03 fixes the schemas and header names are discarded, not relayed, when the relay starts; P1-07 records that in its acceptance criteria. v0.1 put both spikes in I3.
 - **Defer A-01** (contradiction register, 2 points) to keep the rule.
 - **Do not defer P0-13.** v0.1 suggested it, but P0-13 checks hub fees against K6 and the guest margin against K8, which the gate decision G-04 needs. B-02 and N-01 also stay; they were only needed to free the 10 points that v0.1 asked for.
 - ADR-0008's fallback deadline moves from 7 Dec to the end of I4 (20 Dec) accordingly.

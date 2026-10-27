@@ -45,7 +45,7 @@ E3 OCPI eMSP core platform and infra,X-08,"hub-gateway local read model from bin
 - [ ] ev.policy.policy-changed.v1 replaces the synchronous policy call, or the deviation is recorded"
 "E1 Legal, compliance and consent",X-09,"Event privacy: data-class lint, no-personal-key rule, erasure drill with the DPO",Backlog,later,Phase 1 Core backend,EV_PNC_docs,Compliance agent,3,yes,X-03;K-01,phase-1;compliance-agent;v2-new;kafka;human-gate;waits-external;it:later,"Acceptance criteria:
 - [ ] Schema linter fails a field tagged pii; checker rejects personal keys
-- [ ] Erasure drill: delete mapping, tombstone every key of the person (grantId, vehicleRef, emaid, tokenUid, upstreamGrantId, and driverRef on policy-changed), compaction within the agreed lag [3 days] with max.compaction.lag.ms set
+- [ ] Erasure drill: delete mapping, tombstone every key of the person (grantId, vehicleRef, emaid, tokenUid, upstreamGrantRef, and driverRef on policy-changed); DPO sign-off on the e-Devlet upstream topic (ADR-0013 item 5b), compaction within the agreed lag [3 days] with max.compaction.lag.ms set
 - [ ] DPO sample review of one topic per wave; sign-off stored in the repo
 - [ ] Platform data inventory (P0-17) lists each topic with class and expiry"
 E3 OCPI eMSP core platform and infra,X-10,"Baseline load test and sizing: from defaults, one lever per run, median of three, P99 reported",Backlog,later,Phase 1 Core backend,EV_PNC_infra,QA agent,3,no,X-02;X-05,phase-1;qa-agent;v2-new;kafka;it:later,"Acceptance criteria:

@@ -122,7 +122,7 @@ One durability profile for the whole cluster, with only batching and retention d
 | `ev.telemetry.evse-availability-changed.v1` | telemetry | evseUid | 12 | compacted | B | public | planner, pilot-analytics |
 | `ev.loyalty.bonus-earned.v1` | loyalty | accountId | 6 | 7d | A | pseudonymous | api-gateway, pilot-analytics |
 | `ev.invoice.invoice-state-changed.v1` | invoicing | paymentId | 6 | 30d | A | pseudonymous | api-gateway, pilot-analytics |
-| `ev.edevlet.upstream-grant-changed.v1` | edevlet-bridge | upstreamGrantId | 6 | compacted | B | pseudonymous | consent-registry, plugcharge |
+| `ev.edevlet.upstream-grant-changed.v1` | edevlet-bridge | upstreamGrantRef | 6 | compacted | B | pseudonymous | consent-registry, plugcharge |
 
 Notes on the catalogue:
 - **Changed in 0.2:** `grant-changed` is keyed by `grantId`, not `driverRef`. A grant is per driver, hub and purpose, and compaction keeps one record per key, so the v0.1 key would have kept only each driver's last grant and a rebuilt `hub-gateway` read model would have lost the others. Check R8 now catches this.
@@ -203,7 +203,7 @@ With two status channels per socket, as in the pilot row, status alone is about 
 ## 8. Inconsistencies found in the existing plan
 
 1. **Missing repos.** Eight cards (L-04, L-05, L-07, L-12 and V-04 to V-07) point at `EV_PNC_loyalty` and `EV_PNC_invoicing`, which are not in the 19-repo plan or in `components.csv`. The packaging check with both added (`tools/components_v2_1.csv`) still has no cycle, 21 repos in all. Suggested card X-12.
-2. **Telemetry runtime.** The README says Go; the rest of the platform is Kotlin. v0.1 of ADR-0012 proposed the JVM for one runtime less; revision 0.2 recommends keeping Go (item 6). X-01 decides.
+2. **Telemetry runtime.** The README says Go; the rest of the platform is Kotlin. v0.1 of ADR-0012 proposed the JVM for one runtime less; revision 0.2 recommends keeping Go (ADR-0012 item 4; see finding 6 below). X-01 decides.
 3. **Vehicle identity** is a separate container in the deck and a module of `plugcharge` in the repo plan. This document follows the repo plan.
 4. **ADR numbering.** P0-05 is titled "ADR-001" while the series runs ADR-0001 to ADR-0007. Rename it when it is written.
 5. **Kafka in the national plan.** The NHS HLD names Kafka for the public side too; that cluster is the public bodies' to run, not ours. This stack covers the EV_PNC_ and Consent services only.
@@ -225,7 +225,7 @@ With two status channels per socket, as in the pilot row, status alone is about 
 
 | Section | Change |
 |---|---|
-| §1, ADR-0012 | Spring Boot 4.x and JDK 25 LTS instead of Boot 3 and JDK 21; telemetry stays Go |
+| §1, ADR-0012 | Spring Boot 4.x and JDK 25 LTS named instead of "a supported JDK LTS and the currently supported Spring Boot line"; telemetry stays Go |
 | §2.1 | `edevlet-bridge` row: the only e-Devlet client, for all six consent flows |
 | §2.2 | customer-profile module in `loyalty`, gated by the profiling opt-in |
 | §3.1 | KIP-848 consumer protocol to test; `max.compaction.lag.ms` on compacted topics |
