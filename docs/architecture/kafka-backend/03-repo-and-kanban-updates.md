@@ -12,7 +12,7 @@
 | `EV_PNC_ocpi-model` | Avro event schemas for the 20 topics, `Money` and `EventTime` types, envelope header constants, Kotlin and Python codegen (M-01 already asks for both). Schema changes follow M-02 rules | 0010 |
 | `EV_PNC_ocpi-emsp` | README: Kafka via the Modulith publication registry; single writer of six topics including session and CDR for all channels; ingest port for hub CDRs | 0008, 0010, 0011 |
 | `EV_PNC_hub-gateway` | README: local read model from binding, contract, grant and policy topics; publishes status and authorization decisions; hub CDRs go to the ocpi-emsp ingest port | 0011, AP-5 |
-| `EV_PNC_telemetry` | README line "Go, Redis, Kafka, TimescaleDB" becomes "Kotlin, Spring Boot 3, PostgreSQL with TimescaleDB and PostGIS, Redis-compatible cache, Kafka" if X-01 accepts it. Consumes five topics, owns one | 0012 |
+| `EV_PNC_telemetry` | README line "Go, Redis, Kafka, TimescaleDB" becomes "Kotlin, Spring Boot, PostgreSQL with TimescaleDB and PostGIS, Redis-compatible cache, Kafka" if X-01 accepts it. Consumes five topics, owns one | 0012 |
 | `EV_PNC_pilot-analytics` | Batch jobs reading 14 topics; union-find for EVSE identity (C-02, C-03) with an oracle test; same inputs give the same KPIs | 0015, DP-7 |
 | `EV_PNC_simulator` | Redelivery and failure kit; header-printing debug consumer; hub mocks publish through the same envelope | 0011 |
 | `EV_PNC_plugcharge` | Owns `contract-changed` and `vehicle-binding-changed`; no VIN or plate in payloads; recipient resolver API | 0013 |

@@ -1,4 +1,4 @@
-# ADR-0012: Runtime: Kotlin on Spring Boot 3, MVC with virtual threads, reactive only at the edge
+# ADR-0012: Runtime: Kotlin on Spring Boot, MVC with virtual threads, reactive only at the edge
 
 **Status:** proposed; the telemetry runtime change needs the product owner (card X-01) · **Date:** 2026-10-26
 
@@ -8,12 +8,12 @@
 
 | Option | For | Against |
 |---|---|---|
-| A Kotlin, Spring Boot 3, MVC with virtual threads | Blocking style, simple stack traces, one language for 10+ services | Virtual threads need a check against pinning in client libraries |
+| A Kotlin, Spring Boot (supported line), MVC with virtual threads | Blocking style, simple stack traces, one language for 10+ services | Virtual threads need a check against pinning in client libraries |
 | B Same with WebFlux everywhere | High concurrency per node | Everything must be non-blocking (JDBC to R2DBC); one blocking call ties up a core-bound thread |
 | C Polyglot per service (Go, Node.js) | Local optimum | More toolchains, more on-call knowledge, shared templates stop working |
 
 **Decision.**
-1. Option A for every backend service: Kotlin, JDK 21 or newer (LTS), Spring Boot 3 (pin the supported line in `infra-modules`), Spring MVC with virtual threads, Resilience4j for timeouts, retries, circuit breakers and bulkheads (order: time limiter, circuit breaker, retry; rate limit before all).
+1. Option A for every backend service: Kotlin, a supported JDK LTS, the currently supported Spring Boot line (pinned in `infra-modules`; X-05 confirms its open-source support window before this ADR is accepted), Spring MVC with virtual threads, Resilience4j for timeouts, retries, circuit breakers and bulkheads (order: time limiter, circuit breaker, retry; rate limit before all).
 2. Reactive only in `api-gateway` (Spring Cloud Gateway) where many concurrent I/O-bound connections and aggregation justify it. Nothing downstream of it is reactive.
 3. Persistence: PostgreSQL, one schema per service, Flyway migrations written to be compatible with the previous release (rolling deploys run both). Spring Data JDBC for aggregates, one repository per aggregate root. `JdbcClient` or jOOQ for read models and reports. JPA only with a written reason. Never `ddl-auto` in production.
 4. **Telemetry moves from Go to Kotlin** (proposed). Its load is about 4 messages per second at the pilot and about 100 nationally; the JVM handles that, and one runtime lets it share the template and libraries. Keep Go only if the X-10 baseline shows a measured gap. This changes `EV_PNC_telemetry`'s README line "Go, Redis, Kafka, TimescaleDB".

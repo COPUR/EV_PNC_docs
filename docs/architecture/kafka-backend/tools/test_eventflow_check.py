@@ -21,7 +21,10 @@ def run(rows):
         w = csv.DictWriter(f, fieldnames=FIELDS)
         w.writeheader()
         w.writerows(rows)
-    proc = subprocess.run([sys.executable, str(CHECK), f.name, "--strict"], capture_output=True, text=True)
+    try:
+        proc = subprocess.run([sys.executable, str(CHECK), f.name, "--strict"], capture_output=True, text=True)
+    finally:
+        Path(f.name).unlink()
     return proc.returncode, proc.stdout
 
 
@@ -41,7 +44,7 @@ class EventflowCheckTest(unittest.TestCase):
         self.assertIn("R1 ev.payment.a.v1: declared twice", out)
 
     def test_personal_identifier_inside_key_fails_r3(self):
-        for key in ["vin", "vehicleVin", "driver_phone", "ownerEmail"]:
+        for key in ["vin", "vehicleVin", "driver_phone", "ownerEmail", "nationalId", "msisdn", "licensePlate", "mobileNo", "homeAddress"]:
             code, out = run([row("ev.payment.a.v1", "payments", "loyalty", key=key)])
             self.assertEqual(code, 1, key)
             self.assertIn("R3", out)

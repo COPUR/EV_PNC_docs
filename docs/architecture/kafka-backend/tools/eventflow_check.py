@@ -19,7 +19,8 @@ from collections import defaultdict
 SERVICES = {"ocpi-emsp", "hub-gateway", "plugcharge", "consent-registry", "consent-decision", "consent-audit",
             "policy-engine", "pricing", "payments", "planner", "telemetry", "loyalty", "invoicing",
             "pilot-analytics", "api-gateway"}
-PII_KEYS = {"vin", "plate", "tckn", "vkn", "phone", "email", "name", "pan", "iban"}
+PII_KEYS = {"vin", "plate", "tckn", "vkn", "national", "phone", "msisdn", "mobile", "gsm", "email", "name",
+            "address", "pan", "iban"}
 DECLARED_LOOPS = [frozenset({"planner", "telemetry"})]  # arrivals feed occupancy profiles, availability feeds planning
 
 def key_words(key):

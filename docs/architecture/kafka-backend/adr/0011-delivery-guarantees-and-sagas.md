@@ -15,7 +15,7 @@
 
 **Decision.**
 1. **Publish:** option A in JVM services; the publisher sits behind a port, so B replaces it at national scale or if relay lag becomes a problem, without changing event contracts. The Python planner implements the same outbox table layout and relay in about a hundred lines, covered by a shared contract test. D is forbidden.
-2. **Consume:** at-least-once. Offsets commit after processing, never before. Each consumer records (consumer, `ce_id`) in a unique index inside the same transaction as its effect. Cleanup job after the longest retention of a delete topic. Compacted topics have no retention and can be replayed in full, so their consumers deduplicate by entity key and version (upsert, ignore older versions) instead of by `ce_id`; audit consumers in particular must be replay-safe.
+2. **Consume:** at-least-once. Offsets commit after processing, never before. Each consumer records (consumer, `ce_id`) in a unique index inside the same transaction as its effect. Cleanup job after the longest retention of a delete topic. Compacted topics have no retention and can be replayed in full, so their consumers deduplicate by entity key and version (upsert, ignore older versions) instead of by `ce_id`. **Audit consumers are the exception:** `consent-audit` is append-only. It inserts one immutable row per event, keyed by `ce_id` (or by aggregate key and version), never updates or deletes a row because of a later event, and treats tombstones as no-ops. A replay therefore adds nothing it has already stored and changes nothing it has.
 3. **Retries:** bounded, non-blocking retry topics with backoff, then `<topic>.<group>.dlt` with a reason header (`invalid` or `exhausted`) and an alarm. No unbounded in-place retry; no manual resend with idempotence on (a resend gets a new sequence number, K 05a).
 4. **Exactly-once:** only inside Kafka-to-Kafka stream jobs (`processing.guarantee`, `read_committed`). It is never a design assumption for a service with a database or an outside call.
 5. **Idempotency keys:** one ledger entry per source event id; one PSP capture per `paymentId` (also the PSP idempotency key); one invoice per `paymentId`; one hold per (`paymentId`, kind).
@@ -25,7 +25,7 @@
 
 **Consequences.**
 - Every service has the same three artefacts: outbox table, idempotency table, DLT handling. The golden-path template (ADR-0014) carries them so nobody writes them twice.
-- The redelivery kit in `EV_PNC_simulator` (duplicate, reorder, crash before commit, poison message, slow consumer) is a merge gate for consumers.
+- The redelivery kit in `EV_PNC_simulator` (duplicate, reorder, crash before commit, poison message, slow consumer) is a merge gate for consumers. For `consent-audit` it adds one scenario: a newer version and then a tombstone arrive for an audited grant, and the audit rows are unchanged.
 - DLT messages are an operations duty: the owner triages within one working day [proposed].
 - Relay lag becomes an SLO (publish lag p99 [2 s]); alerts on the outbox backlog.
 - A late final CDR or a missing capture holds the invoice on a timer with an alert, as in the loyalty design notes.

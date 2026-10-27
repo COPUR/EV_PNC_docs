@@ -19,7 +19,7 @@
 2. **Apache Kafka 4.x in KRaft, run by Strimzi on Kubernetes in a Turkey region.** 3 brokers, 3 controllers, RF 3, min ISR 2, `acks=all`, idempotent, one durability profile (ADR-0009).
 3. **Avro in an Apicurio registry, headers envelope, `ev.<context>.<fact>.v<N>` names, one writer per topic enforced by ACL** (ADR-0010).
 4. **Transactional outbox (Spring Modulith), idempotent consumers, bounded retries to per-group dead letters, sagas for money and trips** (ADR-0011).
-5. **Kotlin on Spring Boot 3, MVC with virtual threads, reactive only at the gateway; Spring Data JDBC; telemetry moves from Go to Kotlin (proposed); planner stays Python** (ADR-0012).
+5. **Kotlin on the supported Spring Boot line, MVC with virtual threads, reactive only at the gateway; Spring Data JDBC; telemetry moves from Go to Kotlin (proposed); planner stays Python** (ADR-0012).
 6. **No personal data on topics:** only public or pseudonymous, no raw location, no VIN or plate (ADR-0013).
 7. **No shared platform library:** a template plus off-the-shelf libraries. A `platform-kit` fails the packaging check (zone of pain) (ADR-0014).
 8. **Planner: DP over stop × SoC bucket on a route-ordered DAG, brute-force oracle, no code from teaching libraries** (ADR-0015).

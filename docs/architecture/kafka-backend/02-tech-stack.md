@@ -14,7 +14,7 @@
 | Publishing | Transactional outbox: Spring Modulith event publication registry with Kafka externalisation; Debezium outbox later (ADR-0011) | No dual writes, no custom framework | Direct `KafkaTemplate.send` after commit |
 | Consuming | Spring for Apache Kafka, manual ack after processing, idempotent by a unique key, retry topics then a per-group dead-letter topic | At-least-once made safe | Auto-commit, blocking retries |
 | Stream processing | None at day one. Kafka Streams only for a windowed or stateful join with a written reason | Plain consumers plus Postgres upserts are simpler to run | ksqlDB, Flink |
-| Service runtime | Kotlin, JDK 21 or newer, Spring Boot 3, Spring MVC with virtual threads (ADR-0012) | One paved road | WebFlux everywhere |
+| Service runtime | Kotlin, a supported JDK LTS, the currently supported Spring Boot line, Spring MVC with virtual threads (ADR-0012) | One paved road | WebFlux everywhere |
 | Edge | `api-gateway` on Spring Cloud Gateway (reactive), OIDC/JWT, rate limits | The one place where many concurrent I/O-bound calls justify reactive | Custom servlet gateway |
 | Persistence | PostgreSQL, one schema per service, Flyway; Spring Data JDBC for aggregates, `JdbcClient` or jOOQ for read models | Aggregate-oriented, no lazy-loading traps (SB 06b) | JPA by default, MySQL |
 | Time series | TimescaleDB on PostgreSQL for telemetry history | Already in the telemetry README; two seasons of history (CP-DATA-002) | A second database engine |
@@ -112,7 +112,7 @@ One durability profile for the whole cluster, with only batching and retention d
 | `ev.pnc.contract-changed.v1` | plugcharge | emaid | 6 | compacted | A | pseudonymous | hub-gateway, pilot-analytics |
 | `ev.identity.vehicle-binding-changed.v1` | plugcharge | vehicleRef | 6 | compacted | A | pseudonymous | hub-gateway, pilot-analytics |
 | `ev.consent.grant-changed.v1` | consent-registry | driverRef | 6 | compacted | A | pseudonymous | consent-decision, ocpi-emsp, hub-gateway, plugcharge, consent-audit |
-| `ev.consent.decision-logged.v1` | consent-decision | decisionId | 6 | 7d | A | pseudonymous | consent-audit |
+| `ev.consent.decision-logged.v1` | consent-decision | decisionId | 6 | 30d | A | pseudonymous | consent-audit |
 | `ev.policy.policy-changed.v1` | policy-engine | driverRef | 6 | compacted | B | pseudonymous | hub-gateway, ocpi-emsp |
 | `ev.payment.payment-state-changed.v1` | payments | paymentId | 12 | 30d | A | pseudonymous | loyalty, invoicing, pilot-analytics |
 | `ev.pricing.price-sheet-published.v1` | pricing | priceSheetId | 6 | compacted | B | public | planner, pilot-analytics |
@@ -126,6 +126,7 @@ Notes on the catalogue:
 - It is a draft v0.1 derived from the sequences in the briefing and the specs. The Architect agent confirms owners and consumers on X-04.
 - `ev.policy.policy-changed.v1` is new. The deck calls `policy-engine` synchronously from `hub-gateway`; an event-fed lookup keeps that call out of the 10 s authorize window.
 - Raw location traces never go on Kafka. The app sends positions to `planner` over HTTP, and only `arrival-observed` and `trip-state-changed` leave it.
+- `ev.consent.decision-logged.v1` keeps the 30-day business-fact retention (DP-6) because the audit store is filled from it: a `consent-audit` outage shorter than 30 days loses nothing, and a consumer-lag alert fires after 1 day. `ev.loyalty.bonus-earned.v1` stays at 7 days because it is only a notification; the loyalty ledger is the record.
 - `ev.loyalty.bonus-earned.v1` and `ev.invoice.invoice-state-changed.v1` are consumed by `api-gateway` for push messages. Who owns the push dispatcher is open.
 - `pilot-analytics` reads 14 topics and writes none. That is intended: it is a sink, and its KPI jobs are batch.
 
@@ -167,17 +168,17 @@ Budgets: P3-02 already requires a 500 km route in under 2 s. Proposed addition: 
 
 ## 6. Sizing (all I, derived from stated assumptions)
 
-Assumptions: 1,000 EVSE in scope with two status channels and one change per 8 minutes (the NHS HLD uses the same rate); 500 sessions per day with 40 updates each; 500 trips per day with 33 events each; 5,000 drivers with 20 consent decisions per day; 1 KB per message (0.5 KB for decisions); status and sessions kept 7 days.
+Assumptions: 1,000 EVSE in scope with two status channels and one change per 8 minutes (the NHS HLD uses the same rate); 500 sessions per day with 40 updates each; 500 trips per day with 33 events each; 5,000 drivers with 20 consent decisions per day; 1 KB per message (0.5 KB for decisions); retention as in the catalogue: status and sessions 7 days, trips and consent decisions 30 days.
 
 | Flow | Messages/s (average) | Retained × RF 3 |
 |---|---|---|
 | EVSE status, both channels | 4.2 | 7.6 GB |
 | Session updates | 0.23 | 0.4 GB |
 | CDR, payment, invoice | 0.03 | 0.3 GB |
-| Trip events and arrivals | 0.19 | 0.3 GB |
-| Consent decisions | 1.2 | 1.1 GB |
-| **Pilot total** | about 6 (peak at 10× about 60) | about 10 GB |
-| National (50,000 sockets and 2 M decisions per day, from the NHS HLD) | about 127 | about 210 GB |
+| Trip events and arrivals | 0.19 | 1.5 GB |
+| Consent decisions | 1.2 | 4.5 GB |
+| **Pilot total** | about 6 (peak at 10× about 60) | about 14 GB |
+| National (50,000 sockets and 2 M decisions per day, from the NHS HLD) | about 127 | about 280 GB (decisions at 30 days add about 70 GB) |
 
 The NHS plan allots 3 brokers of 4 vCPU, 16 GB and 500 GB for the national public side, which covers the national row. The pilot is about 6 messages per second, orders of magnitude below what a small broker serves, so **the cluster is sized for durability and operability, not throughput**. The 100 GB disks leave room for 30-day topics, broker restarts and a rebuild. X-10 replaces these estimates with a measured baseline.
 
@@ -202,7 +203,7 @@ The NHS plan allots 3 brokers of 4 vCPU, 16 GB and 500 GB for the national publi
 
 ## 9. Limits
 
-- Versions are not pinned. Kafka 4.x, Spring Boot 3 and Modulith need a compatibility check in X-02 and X-05; I did not run them here.
+- Versions are not pinned. Kafka 4.x, the Spring Boot line and Modulith need a compatibility check in X-02 and X-05, and X-05 must confirm the chosen Spring Boot line is inside its open-source support window before ADR-0012 is accepted; I did not run them here.
 - Apicurio's Confluent-compatible API and Spring Modulith's Kafka externalisation are from my knowledge, not from the skills; the spikes confirm them.
 - Topic catalogue, sizes and budgets are estimates. Hub behaviour (Hubject's 10 s, GIREVE PNCP 1.2.0) is unconfirmed in the project files.
 - I did not benchmark anything. The pilot load figures come from the spec assumptions above.

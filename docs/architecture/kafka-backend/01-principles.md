@@ -132,7 +132,7 @@ A good principle is understandable, robust, complete, consistent and stable (TOG
 - **Check:** dependency licence scan in CI; a monthly "can we move" review reading the infra modules.
 
 ### TP-2 One paved road: the JVM, with written reasons for anything else
-- **Statement:** Backend services are Kotlin on a JDK 21 LTS or newer and Spring Boot 3, using Spring MVC with virtual threads. Other runtimes need a one-paragraph reason in an ADR.
+- **Statement:** Backend services are Kotlin on a supported JDK LTS and the currently supported Spring Boot line (pinned in `infra-modules`), using Spring MVC with virtual threads. Other runtimes need a one-paragraph reason in an ADR.
 - **Rationale:** Two or three people (or agent roles) must maintain everything. Reactive code is chosen only end to end and for cost, not for speed (SB 02d, 03d).
 - **Implications:** Exceptions today: planner in Python (OR-Tools and NumPy), mobile apps native, `api-gateway` on Spring Cloud Gateway (reactive, where many concurrent I/O-bound connections justify it). `telemetry` moves from Go to the JVM unless a measurement says otherwise (ADR-0012).
 - **Check:** `docs/stack.md` lists each service's runtime; an ADR link is required for anything else.
