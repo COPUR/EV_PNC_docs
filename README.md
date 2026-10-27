@@ -6,5 +6,6 @@ working agreement. Consent and hub-vendor documents live in their own repositori
 
 ## Contributing
 
-PR titles follow conventional commits (`docs(scope): subject`); the title becomes the squash
-commit on `main`. Every PR is reviewed by the CI review agent (`review / verdict`).
+PR titles follow conventional commits, `type(scope): subject` with an optional scope, such as
+`docs: ...` or `docs(adr): ...`; the title becomes the squash commit on `main`. Every PR that is
+ready for review is checked by the CI review agent (`review / verdict`); drafts are not reviewed.
