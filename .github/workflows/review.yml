@@ -17,9 +17,9 @@ concurrency:
 
 jobs:
   review:
-    uses: COPUR/EV_PNC_infra-modules/.github/workflows/ci-reviewer.yml@5b492c6932a097b3128df0aedfe275b935da3f77 # EV_PNC_infra-modules
+    uses: COPUR/EV_PNC_infra-modules/.github/workflows/ci-reviewer.yml@75c0a6eb365256c6f0f5100aba669653cb9f5db1 # EV_PNC_infra-modules
     with:
-      reviewer-ref: 5b492c6932a097b3128df0aedfe275b935da3f77 # same commit as above; selects the reviewer script
+      reviewer-ref: 75c0a6eb365256c6f0f5100aba669653cb9f5db1 # same commit as above; selects the reviewer script
       req-id-pattern: "" # docs repo: no requirement ID in titles
     secrets:
       anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
