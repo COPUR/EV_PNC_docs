@@ -9,7 +9,7 @@
 | `EV_PNC_docs` | Add `docs/architecture/` (principles, stack) and ADR-0008 to 0015, which live under `docs/architecture/kafka-backend/adr/` until P0-02 moves the whole ADR series into one directory. Add `topics.csv` and `eventflow_check.py` under `tools/`. Add the loyalty and invoicing rows to `components.csv`. Put the relationship labels of stack §2.1 into the context map (P0-16). Rename P0-05 "ADR-001" to the next free number | all ADRs |
 | `EV_PNC_infra-modules` | Modules: Strimzi operator, Kafka cluster with node pools, `KafkaTopic` and `KafkaUser` generated from `topics.csv`, Apicurio Registry. `templates/spring-service` and a small Python template. Reusable workflow steps: schema compatibility, topic manifest diff, `eventflow_check --strict`, licence scan, redelivery kit | 0009, 0010, 0014 |
 | `EV_PNC_infra` | Kafka environment per stage, `KafkaUser` certificates in the key vault partitions, dashboards and alerts (URP, ISR shrinks, lag SLOs, publish lag, revocation time), restore test, preproduction idle-to-zero | 0009 |
-| `EV_PNC_ocpi-model` | Avro event schemas for the 20 topics, `Money` and `EventTime` types, envelope header constants, Kotlin and Python codegen (M-01 already asks for both). Schema changes follow M-02 rules | 0010 |
+| `EV_PNC_ocpi-model` | Avro event schemas for the 21 topics, `Money` and `EventTime` types, envelope header constants, Kotlin and Python codegen (M-01 already asks for both). Schema changes follow M-02 rules | 0010 |
 | `EV_PNC_ocpi-emsp` | README: Kafka via the Modulith publication registry; single writer of six topics including session and CDR for all channels; ingest port for hub CDRs | 0008, 0010, 0011 |
 | `EV_PNC_hub-gateway` | README: local read model from binding, contract, grant and policy topics; publishes status and authorization decisions; hub CDRs go to the ocpi-emsp ingest port | 0011, AP-5 |
 | `EV_PNC_telemetry` | README line "Go, Redis, Kafka, TimescaleDB" becomes "Kotlin, Spring Boot, PostgreSQL with TimescaleDB and PostGIS, Redis-compatible cache, Kafka" if X-01 accepts it. Consumes five topics, owns one | 0012 |
@@ -22,7 +22,7 @@
 | `EV_PNC_api-gateway` | Spring Cloud Gateway (the one reactive component); push dispatcher is an open item | 0012 |
 | `EV_PNC_mobile` | No Kafka. Generated clients only | 0012 |
 | `EV_PNC_loyalty`, `EV_PNC_invoicing` | Create (card X-12). Kotlin, template-generated | 0014 |
-| `EV_PnC_Consent_*` | `contracts`: Avro for `grant-changed` and `decision-logged` beside OpenAPI and JSON Schema. `registry` owns grants; `decision` owns decision logs; `audit` consumes. Quotas and ACLs on the shared cluster; `infra` reuses the Kafka modules | 0009, 0010 |
+| `EV_PnC_Consent_*` | `contracts`: Avro for `grant-changed`, `grant-event-logged` and `decision-logged` beside OpenAPI and JSON Schema. `registry` owns grants; `decision` owns decision logs; `audit` consumes. Quotas and ACLs on the shared cluster; `infra` reuses the Kafka modules | 0009, 0010 |
 | `EV_PNC_national-data`, `EV_PNC_national-consent` | None. Their stack is for the adopting public bodies to choose | |
 
 ## 2. Existing cards to amend (add these acceptance criteria)
@@ -40,7 +40,7 @@
 | C-02, C-03 | EVSE identity by union-find with oracle test and a human sample of merges |
 | C-14 | Jobs read topics in batch; replaying yesterday's inputs reproduces yesterday's KPIs |
 | H-05 | Authorize answers from a local read model; with Kafka stopped it still answers |
-| K-05, K-06, K-07 | Topics `grant-changed` and `decision-logged`; revocation-to-hub time as a metric (RC-REV-002) |
+| K-05, K-06, K-07 | Topics `grant-changed`, `grant-event-logged` (audit feed) and `decision-logged`; revocation-to-hub time as a metric (RC-REV-002) |
 | P3-02 | ADR-0015: oracle test against brute force, benchmark gate, DP per family (the existing 2 s on 500 km stays) |
 | L-04, L-05, V-04 | Idempotency key is `ce_id`; consume `payment-state-changed`, `cdr-received`, `trip-state-changed` |
 

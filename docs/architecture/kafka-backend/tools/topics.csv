@@ -9,7 +9,8 @@ ev.hub.evse-status-changed.v1,hub-gateway,evseUid,12,delete,7d,C-volume,public,t
 ev.hub.authorization-decided.v1,hub-gateway,attemptId,12,delete,30d,A-critical,pseudonymous,pilot-analytics,KPI-3 friction and StatusCode catalogue
 ev.pnc.contract-changed.v1,plugcharge,emaid,6,compact,,A-critical,pseudonymous,hub-gateway;pilot-analytics,EMAID and PCID lifecycle
 ev.identity.vehicle-binding-changed.v1,plugcharge,vehicleRef,6,compact,,A-critical,pseudonymous,hub-gateway;pilot-analytics,vehicle-identity module; state per VehicleBinding STT; no VIN or plate in payload
-ev.consent.grant-changed.v1,consent-registry,driverRef,6,compact,,A-critical,pseudonymous,consent-decision;ocpi-emsp;hub-gateway;plugcharge;consent-audit,RoamingGrantActive and RoamingGrantRevoked; revocation SLA RC-REV-002
+ev.consent.grant-changed.v1,consent-registry,driverRef,6,compact,,A-critical,pseudonymous,consent-decision;ocpi-emsp;hub-gateway;plugcharge,RoamingGrantActive and RoamingGrantRevoked; revocation SLA RC-REV-002
+ev.consent.grant-event-logged.v1,consent-registry,grantEventId,6,delete,30d,A-critical,pseudonymous,consent-audit,"append-only grant and revocation facts, one per transition, for the audit store; delete topic with 30 d so a consent-audit outage shorter than that loses no transition (grant-changed is compacted and would)"
 ev.consent.decision-logged.v1,consent-decision,decisionId,6,delete,30d,A-critical,pseudonymous,consent-audit,async audit of PDP decisions; audit store is the record; 30 d (business facts) so a consumer outage cannot lose audit entries; alert on consent-audit lag above 1 d
 ev.policy.policy-changed.v1,policy-engine,driverRef,6,compact,,B-state,pseudonymous,hub-gateway;ocpi-emsp,proposed: removes a synchronous policy call from the Plug&Charge hot path
 ev.payment.payment-state-changed.v1,payments,paymentId,12,delete,30d,A-critical,pseudonymous,loyalty;invoicing;pilot-analytics,PaymentAuthorised Captured Refunded; PaymentCompleted for invoicing

@@ -11,8 +11,9 @@ CHECK = HERE / "eventflow_check.py"
 FIELDS = ["topic", "owner", "key", "partitions", "cleanup", "retention", "class", "data_class", "consumers", "note"]
 
 
-def row(topic, owner, consumers, key="paymentId", cleanup="delete", retention="7d", data_class="pseudonymous"):
-    return {"topic": topic, "owner": owner, "key": key, "partitions": "6", "cleanup": cleanup,
+def row(topic, owner, consumers, key="paymentId", cleanup="delete", retention="7d", data_class="pseudonymous",
+        partitions="6"):
+    return {"topic": topic, "owner": owner, "key": key, "partitions": partitions, "cleanup": cleanup,
             "retention": retention, "class": "A-critical", "data_class": data_class, "consumers": consumers, "note": ""}
 
 
@@ -53,6 +54,32 @@ class EventflowCheckTest(unittest.TestCase):
         for key in ["paymentId", "driverRef", "evseUid", "tariffUid", "companyId"]:
             code, out = run([row("ev.payment.a.v1", "payments", "loyalty", key=key)])
             self.assertEqual(code, 0, f"{key}: {out}")
+
+    def test_orphan_topic_fails_r2(self):
+        code, out = run([row("ev.payment.a.v1", "payments", "")])
+        self.assertEqual(code, 1)
+        self.assertIn("R2 ev.payment.a.v1: no consumer (orphan)", out)
+
+    def test_compacted_without_key_fails_r3(self):
+        code, out = run([row("ev.payment.a.v1", "payments", "loyalty", key="", cleanup="compact", retention="")])
+        self.assertEqual(code, 1)
+        self.assertIn("R3 ev.payment.a.v1: compacted without key", out)
+
+    def test_partition_count_outside_ladder_fails_r4(self):
+        code, out = run([row("ev.payment.a.v1", "payments", "loyalty", partitions="5")])
+        self.assertEqual(code, 1)
+        self.assertIn("R4 ev.payment.a.v1: partitions 5", out)
+
+    def test_retention_mismatch_fails_r5(self):
+        for cleanup, retention in [("delete", ""), ("compact", "7d")]:
+            code, out = run([row("ev.payment.a.v1", "payments", "loyalty", cleanup=cleanup, retention=retention)])
+            self.assertEqual(code, 1, cleanup)
+            self.assertIn("R5 ev.payment.a.v1", out)
+
+    def test_personal_data_class_fails_r6(self):
+        code, out = run([row("ev.payment.a.v1", "payments", "loyalty", data_class="personal")])
+        self.assertEqual(code, 1)
+        self.assertIn("R6 ev.payment.a.v1: data class personal", out)
 
     def test_undeclared_loop_fails_r7(self):
         code, out = run([row("ev.payment.a.v1", "payments", "loyalty"), row("ev.loyalty.b.v1", "loyalty", "payments")])

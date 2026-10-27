@@ -97,7 +97,7 @@ One durability profile for the whole cluster, with only batching and retention d
 - **Envelope** (headers, so the payload stays the pure fact): `ce_id` (the idempotency key), `ce_type`, `ce_source`, `ce_time`, `ce_subject`, `traceparent`, `correlationid` (`paymentId` or `tripId`), `dataclass` (`public` or `pseudonymous`), `expires` (time after which a consumer drops the event, from the design review's re-plan fix).
 - **Dead letters:** `<topic>.<consumer-group>.dlt`, one per consumer group, with headers for the reason (`invalid`, `exhausted`) and the original topic, partition and offset. A DLT message raises an alarm.
 
-### 3.4 Topic catalogue (20 topics, generated from `tools/topics.csv`)
+### 3.4 Topic catalogue (21 topics, generated from `tools/topics.csv`)
 
 | Topic | Owner (single writer) | Key | Part. | Retention | Class | Data | Consumers |
 |---|---|---|---|---|---|---|---|
@@ -111,7 +111,8 @@ One durability profile for the whole cluster, with only batching and retention d
 | `ev.hub.authorization-decided.v1` | hub-gateway | attemptId | 12 | 30d | A | pseudonymous | pilot-analytics |
 | `ev.pnc.contract-changed.v1` | plugcharge | emaid | 6 | compacted | A | pseudonymous | hub-gateway, pilot-analytics |
 | `ev.identity.vehicle-binding-changed.v1` | plugcharge | vehicleRef | 6 | compacted | A | pseudonymous | hub-gateway, pilot-analytics |
-| `ev.consent.grant-changed.v1` | consent-registry | driverRef | 6 | compacted | A | pseudonymous | consent-decision, ocpi-emsp, hub-gateway, plugcharge, consent-audit |
+| `ev.consent.grant-changed.v1` | consent-registry | driverRef | 6 | compacted | A | pseudonymous | consent-decision, ocpi-emsp, hub-gateway, plugcharge |
+| `ev.consent.grant-event-logged.v1` | consent-registry | grantEventId | 6 | 30d | A | pseudonymous | consent-audit |
 | `ev.consent.decision-logged.v1` | consent-decision | decisionId | 6 | 30d | A | pseudonymous | consent-audit |
 | `ev.policy.policy-changed.v1` | policy-engine | driverRef | 6 | compacted | B | pseudonymous | hub-gateway, ocpi-emsp |
 | `ev.payment.payment-state-changed.v1` | payments | paymentId | 12 | 30d | A | pseudonymous | loyalty, invoicing, pilot-analytics |
@@ -126,6 +127,7 @@ Notes on the catalogue:
 - It is a draft v0.1 derived from the sequences in the briefing and the specs. The Architect agent confirms owners and consumers on X-04.
 - `ev.policy.policy-changed.v1` is new. The deck calls `policy-engine` synchronously from `hub-gateway`; an event-fed lookup keeps that call out of the 10 s authorize window.
 - Raw location traces never go on Kafka. The app sends positions to `planner` over HTTP, and only `arrival-observed` and `trip-state-changed` leave it.
+- `consent-audit` never reads the compacted `grant-changed`: compaction could fold an active, revoked, active sequence into its last value while the consumer is down, and the revocation evidence (RC-REV-002) would never reach the record. `consent-registry` publishes every transition through its outbox to `ev.consent.grant-event-logged.v1` as well, a delete topic with 30 days.
 - `ev.consent.decision-logged.v1` keeps the 30-day business-fact retention (DP-6) because the audit store is filled from it: a `consent-audit` outage shorter than 30 days loses nothing, and a consumer-lag alert fires after 1 day. `ev.loyalty.bonus-earned.v1` stays at 7 days because it is only a notification; the loyalty ledger is the record.
 - `ev.loyalty.bonus-earned.v1` and `ev.invoice.invoice-state-changed.v1` are consumed by `api-gateway` for push messages. Who owns the push dispatcher is open.
 - `pilot-analytics` reads 14 topics and writes none. That is intended: it is a sink, and its KPI jobs are batch.
@@ -178,9 +180,9 @@ Assumptions: 1,000 EVSE in scope with two status channels and one change per 8 m
 | Trip events and arrivals | 0.19 | 1.5 GB |
 | Consent decisions | 1.2 | 4.5 GB |
 | **Pilot total** | about 6 (peak at 10× about 60) | about 14 GB |
-| National (50,000 sockets and 2 M decisions per day, from the NHS HLD) | about 127 | about 280 GB (decisions at 30 days add about 70 GB) |
+| National (50,000 sockets with one status channel each, as the NHS HLD counts them, and 2 M decisions per day) | about 127 | about 280 GB (decisions at 30 days add about 70 GB) |
 
-The NHS plan allots 3 brokers of 4 vCPU, 16 GB and 500 GB for the national public side, which covers the national row. The pilot is about 6 messages per second, orders of magnitude below what a small broker serves, so **the cluster is sized for durability and operability, not throughput**. The 100 GB disks leave room for 30-day topics, broker restarts and a rebuild. X-10 replaces these estimates with a measured baseline.
+With two status channels per socket, as in the pilot row, status alone is about 208 messages per second and retention about 380 GB; the conclusion below holds either way. The NHS plan allots 3 brokers of 4 vCPU, 16 GB and 500 GB for the national public side, which covers the national row. The pilot is about 6 messages per second, orders of magnitude below what a small broker serves, so **the cluster is sized for durability and operability, not throughput**. The 100 GB disks leave room for 30-day topics, broker restarts and a rebuild. X-10 replaces these estimates with a measured baseline.
 
 ## 7. Well-Architected sustainability review (SUS)
 
