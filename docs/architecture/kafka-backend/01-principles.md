@@ -1,6 +1,6 @@
 # EV_PNC architecture principles: Data, Application, Technology
 
-**Version:** 0.2 (audit 2026-10-26, changes listed at the end) · **Date:** 2026-10-26 · **Status:** proposed, accepted by the product owner on card X-01 · **Scope:** the EV_PNC_ platform and, where they share the Kafka cluster, the EV_PnC_Consent_ services
+**Version:** 0.2 (audit 2026-10-26, changes listed at the end) · **Date:** 2026-10-26 · **Status:** proposed; for acceptance by the product owner on card X-01 · **Scope:** the EV_PNC_ platform and, where they share the Kafka cluster, the EV_PnC_Consent_ services
 **Frame:** TOGAF. The squad agents read BDAT as Business, Data, Application, Technology (an assumption, see `squad-agents-ev-pnc-squad`). Principles follow the TOGAF template: **Name, Statement, Rationale, Implications**, plus a **Check** (a fitness function that says where it runs), so a principle that cannot be tested stays a wish.
 **Business principles** are not rewritten here. They already exist and these principles assume them: the platform is a neutral eMSP, not a CPO and not a payment institution; it is hub-ready and not hub-dependent; the pilot does not depend on state services (NHS-ADR-05); the guest price is B2B cost plus fixed margin plus VAT (ADR-0006).
 **Sources:** apache-kafka, microservices-and-ddd (with evans-ddd), algorithms-data-structures (with the TheAlgorithms-Java and Liang libraries), java-spring-boot (with spring-boot-in-practice security/REST/reactive), aws-waf-sustainability, architecture-review. Tags such as (K 05a) point to the skill chapter.
@@ -37,8 +37,8 @@ A good principle is understandable, robust, complete, consistent and stable (TOG
 
 ### DP-5 Personal data stays off the log
 - **Statement:** Topics carry public or pseudonymous data only. No VIN, plate, national ID, phone, e-mail, name, card number, raw location trace or registration-document image. People and cars appear as opaque references (`driverRef`, `vehicleRef`); resolving one goes through the owning service's API under authorization.
-- **Rationale:** The log is immutable and replicated three times. Erasure and cross-border duties (KVKK Art. 9) are manageable when personal data lives in few places. **Pseudonymous is still personal data**, so the class limits exposure and does not remove duties.
-- **Implications:** Details and the erasure path are in ADR-0013. Keys of topics are never personal identifiers. A compacted topic is keyed by the aggregate whose full state it carries (ADR-0010 item 5), and sets `max.compaction.lag.ms` so erasure has a bound.
+- **Rationale:** The log is immutable and replicated three times. Erasure (KVKK Art. 7), security (Art. 12) and cross-border duties (Art. 9) are manageable when personal data lives in few places. **Pseudonymous is still personal data**, so the class limits exposure and does not remove duties.
+- **Implications:** Details and the erasure path are in ADR-0013. Keys of topics are never personal identifiers. A compacted topic is keyed by the aggregate whose full state it carries (ADR-0010 item 5), and sets `max.compaction.lag.ms` so erasure has a bound. EMAID and OCPI token uid are linkable outside our systems, so their topics rely on tombstones with that bounded lag for erasure (ADR-0013 item 5a, DPO sign-off on X-09).
 - **Check:** `eventflow_check` R3, R6 and R8; the schema linter fails a field tagged `pii`; erasure drill (tombstone, then compaction within the agreed lag); DPO sample review each wave.
 
 ### DP-6 Every dataset has a class, an owner and an expiry
@@ -132,7 +132,7 @@ A good principle is understandable, robust, complete, consistent and stable (TOG
 - **Check:** dependency licence scan in CI; a monthly "can we move" review reading the infra modules.
 
 ### TP-2 One paved road: the JVM, with written reasons for anything else
-- **Statement:** Backend services are Kotlin on JDK 25 LTS and Spring Boot 4.x, using Spring MVC with virtual threads. Other runtimes need a one-paragraph reason in an ADR.
+- **Statement:** Backend services are Kotlin on JDK 25 LTS and Spring Boot 4.x (exact line pinned in `infra-modules`), using Spring MVC with virtual threads. Other runtimes need a one-paragraph reason in an ADR.
 - **Rationale:** Two or three people (or agent roles) must maintain everything. Reactive code is chosen only end to end and for cost, not for speed (SB 02d, 03d).
 - **Implications:** Exceptions today: planner in Python (OR-Tools and NumPy), mobile apps native, `api-gateway` on Spring Cloud Gateway (reactive, where many concurrent I/O-bound connections justify it). `telemetry` stays Go for now because C-01 is already written in Go (ADR-0012 revision 0.2); Go and Python services meet the same outbox, header and redelivery contract tests as the JVM template.
 - **Check:** `docs/stack.md` lists each service's runtime; an ADR link is required for anything else.
@@ -166,7 +166,7 @@ A good principle is understandable, robust, complete, consistent and stable (TOG
 
 ### TP-8 Measure before tuning, and name the service goal
 - **Statement:** For each topic class, decide first which of throughput, latency, durability and availability matters most. Benchmark from defaults, change one lever per run, repeat three times, report P99 beside throughput.
-- **Rationale:** K 05a, 06a, 04a. The pilot's load is three orders of magnitude below what a small cluster handles (ADR-0009), so the decision here is durability and operability, not speed.
+- **Rationale:** K 05a, 06a, 04a. The pilot's load (about 6 messages per second) is orders of magnitude below what a small cluster handles (ADR-0008, 02-tech-stack §6), so the decision here is durability and operability, not speed.
 - **Check:** the X-10 baseline report exists before any non-default setting is merged.
 
 ### TP-9 Spend what the load needs

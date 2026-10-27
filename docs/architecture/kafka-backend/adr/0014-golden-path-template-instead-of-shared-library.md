@@ -4,7 +4,7 @@
 
 **Context.** Every JVM service needs the same outbox, idempotent consumer, retry and dead-letter handling, tracing headers and security defaults. The obvious move is a shared `platform-kit` library. The repo plan applies Martin's package principles and checks them with `tools/packaging_check.py`. Code sharing between services is also a named antipattern (MS 03a).
 
-**Evidence.** I added a `platform-kit` component to the component graph (library, estimated abstractness 0.40, used by 10 deployables) and ran the check (`evidence/packaging-check-v2_1-with-kit-output.txt`): no cycle, but `platform-kit` has instability 0.09 and distance D' 0.51, which the tool flags as the **zone of pain**: stable and concrete, hard to change, and everything depends on it. Without the kit (`evidence/packaging-check-v2_1-output.txt`, which also adds the missing `loyalty` and `invoicing` repos) the check passes with no cycle, no SDP violation and nothing in the zone of pain. Abstractness is an estimate until code exists.
+**Evidence.** I added a `platform-kit` component to the component graph (library, estimated abstractness 0.40, used by 10 components: 9 deployables and the `hub-core` library) and ran the check (`evidence/packaging-check-v2_1-with-kit-output.txt`): no cycle, but `platform-kit` has instability 0.09 and distance D' 0.51, which the tool flags as the **zone of pain**: stable and concrete, hard to change, and everything depends on it. Without the kit (`evidence/packaging-check-v2_1-output.txt`, which also adds the missing `loyalty` and `invoicing` repos) the check passes with no cycle, no SDP violation and nothing in the zone of pain. Abstractness is an estimate until code exists.
 
 **Options.**
 

@@ -85,7 +85,7 @@ One durability profile for the whole cluster, with only batching and retention d
 
 | Class | Goal in order | Topics | Settings beyond the profile |
 |---|---|---|---|
-| A critical | durability, then latency | payments, CDRs, grants, binding, contract, trips, ledger, invoice, authorization, consent decisions | defaults |
+| A critical | durability, then latency | payments, CDRs, grants, binding, contract, trips, ledger, invoice, authorization, consent decisions | defaults; the state topics among them (grants, binding, contract) are compacted with a required key |
 | B state | durability, rebuildability | location, tariff, token, policy, price sheet, availability | `cleanup.policy=compact`, key required |
 | C volume | throughput | EVSE status, session updates, arrivals | lz4, linger 20 ms, retention 7 d |
 
@@ -97,7 +97,7 @@ One durability profile for the whole cluster, with only batching and retention d
 - **Envelope** (headers, so the payload stays the pure fact): `ce_id` (the idempotency key), `ce_type`, `ce_source`, `ce_time`, `ce_subject`, `traceparent`, `correlationid` (`paymentId` or `tripId`), `dataclass` (`public` or `pseudonymous`), `expires` (time after which a consumer drops the event, from the design review's re-plan fix).
 - **Dead letters:** `<topic>.<consumer-group>.dlt`, one per consumer group, with headers for the reason (`invalid`, `exhausted`) and the original topic, partition and offset. A DLT message raises an alarm.
 
-### 3.4 Topic catalogue (21 topics, generated from `tools/topics.csv`)
+### 3.4 Topic catalogue (22 topics, generated from `tools/topics.csv`)
 
 | Topic | Owner (single writer) | Key | Part. | Retention | Class | Data | Consumers |
 |---|---|---|---|---|---|---|---|
@@ -111,8 +111,9 @@ One durability profile for the whole cluster, with only batching and retention d
 | `ev.hub.authorization-decided.v1` | hub-gateway | attemptId | 12 | 30d | A | pseudonymous | pilot-analytics |
 | `ev.pnc.contract-changed.v1` | plugcharge | emaid | 6 | compacted | A | pseudonymous | hub-gateway, ocpi-emsp, pilot-analytics |
 | `ev.identity.vehicle-binding-changed.v1` | plugcharge | vehicleRef | 6 | compacted | A | pseudonymous | hub-gateway, pilot-analytics |
-| `ev.consent.grant-changed.v1` | consent-registry | grantId | 6 | compacted | A | pseudonymous | consent-decision, ocpi-emsp, hub-gateway, plugcharge, consent-audit |
-| `ev.consent.decision-logged.v1` | consent-decision | decisionId | 6 | 7d | A | pseudonymous | consent-audit |
+| `ev.consent.grant-changed.v1` | consent-registry | grantId | 6 | compacted | A | pseudonymous | consent-decision, ocpi-emsp, hub-gateway, plugcharge |
+| `ev.consent.grant-event-logged.v1` | consent-registry | grantId | 6 | 30d | A | pseudonymous | consent-audit |
+| `ev.consent.decision-logged.v1` | consent-decision | decisionId | 6 | 30d | A | pseudonymous | consent-audit |
 | `ev.policy.policy-changed.v1` | policy-engine | driverRef | 6 | compacted | B | pseudonymous | hub-gateway, ocpi-emsp |
 | `ev.payment.payment-state-changed.v1` | payments | paymentId | 12 | 30d | A | pseudonymous | loyalty, invoicing, pilot-analytics |
 | `ev.pricing.price-sheet-published.v1` | pricing | priceSheetId | 6 | compacted | B | public | planner, pilot-analytics |
@@ -131,6 +132,8 @@ Notes on the catalogue:
 - It is a draft v0.1 derived from the sequences in the briefing and the specs. The Architect agent confirms owners and consumers on X-04.
 - `ev.policy.policy-changed.v1` is new. The deck calls `policy-engine` synchronously from `hub-gateway`; an event-fed lookup keeps that call out of the 10 s authorize window.
 - Raw location traces never go on Kafka. The app sends positions to `planner` over HTTP, and only `arrival-observed` and `trip-state-changed` leave it.
+- `consent-audit` never reads the compacted `grant-changed`: compaction could fold an active, revoked, active sequence into its last value while the consumer is down, and the revocation evidence (RC-REV-002) would never reach the record. `consent-registry` publishes every transition through its outbox to `ev.consent.grant-event-logged.v1` as well, a delete topic with 30 days keyed by `grantId`, so the transitions of one grant reach the audit store in order.
+- `ev.consent.decision-logged.v1` keeps the 30-day business-fact retention (DP-6) because the audit store is filled from it: a `consent-audit` outage shorter than 30 days loses nothing, and a consumer-lag alert fires after 1 day. `ev.loyalty.bonus-earned.v1` stays at 7 days because it is only a notification; the loyalty ledger is the record.
 - `ev.loyalty.bonus-earned.v1` and `ev.invoice.invoice-state-changed.v1` are consumed by `api-gateway` for push messages. Who owns the push dispatcher is open.
 - `pilot-analytics` reads 14 topics and writes none. That is intended: it is a sink, and its KPI jobs are batch.
 
@@ -172,19 +175,19 @@ Budgets: P3-02 already requires a 500 km route in under 2 s. Proposed addition: 
 
 ## 6. Sizing (all I, derived from stated assumptions)
 
-Assumptions: 1,000 EVSE in scope with two status channels and one change per 8 minutes (the NHS HLD uses the same rate); 500 sessions per day with 40 updates each; 500 trips per day with 33 events each; 5,000 drivers with 20 consent decisions per day; 1 KB per message (0.5 KB for decisions); status and sessions kept 7 days.
+Assumptions: 1,000 EVSE in scope with two status channels and one change per 8 minutes (the NHS HLD uses the same rate); 500 sessions per day with 40 updates each; 500 trips per day with 33 events each; 5,000 drivers with 20 consent decisions per day; 1 KB per message (0.5 KB for decisions); retention as in the catalogue: status and sessions 7 days, trips and consent decisions 30 days.
 
 | Flow | Messages/s (average) | Retained × RF 3 |
 |---|---|---|
 | EVSE status, both channels | 4.2 | 7.6 GB |
 | Session updates | 0.23 | 0.4 GB |
 | CDR, payment, invoice | 0.03 | 0.3 GB |
-| Trip events and arrivals | 0.19 | 1.5 GB (trip state is kept 30 days; v0.1 counted 7) |
-| Consent decisions | 1.2 | 1.1 GB |
-| **Pilot total** | about 6 (peak at 10× about 60) | about 11 GB |
-| National (50,000 sockets and 2 M decisions per day, from the NHS HLD) | about 127 | about 210 GB |
+| Trip events and arrivals | 0.19 | 1.5 GB |
+| Consent decisions | 1.2 | 4.5 GB |
+| **Pilot total** | about 6 (peak at 10× about 60) | about 14 GB |
+| National (50,000 sockets with one status channel each, as the NHS HLD counts them, and 2 M decisions per day) | about 127 | about 280 GB (decisions at 30 days add about 90 GB) |
 
-The NHS plan allots 3 brokers of 4 vCPU, 16 GB and 500 GB for the national public side, which covers the national row. The pilot is about 6 messages per second, orders of magnitude below what a small broker serves, so **the cluster is sized for durability and operability, not throughput**. The 100 GB disks leave room for 30-day topics, broker restarts and a rebuild. X-10 replaces these estimates with a measured baseline.
+With two status channels per socket, as in the pilot row, status alone is about 208 messages per second and retention about 380 GB; the conclusion below holds either way. The NHS plan allots 3 brokers of 4 vCPU, 16 GB and 500 GB for the national public side, which covers the national row. The pilot is about 6 messages per second, orders of magnitude below what a small broker serves, so **the cluster is sized for durability and operability, not throughput**. The 100 GB disks leave room for 30-day topics, broker restarts and a rebuild. X-10 replaces these estimates with a measured baseline.
 
 ## 7. Well-Architected sustainability review (SUS)
 
@@ -213,7 +216,7 @@ The NHS plan allots 3 brokers of 4 vCPU, 16 GB and 500 GB for the national publi
 
 ## 9. Limits
 
-- Versions are not pinned. Kafka 4.x, Spring Boot 4.x, Spring for Apache Kafka and Spring Modulith 2.x need a compatibility check in X-02 and X-05; nothing was run here.
+- Versions are not pinned. Kafka 4.x, Spring Boot 4.x, Spring for Apache Kafka and Spring Modulith 2.x need a compatibility check in X-02 and X-05, and X-05 must confirm the chosen Spring Boot line is inside its open-source support window before ADR-0012 is accepted; nothing was run here.
 - Apicurio's Confluent-compatible API and Spring Modulith's Kafka externalisation are from my knowledge, not from the skills; the spikes confirm them.
 - Topic catalogue, sizes and budgets are estimates. Hub behaviour (Hubject's 10 s, GIREVE PNCP 1.2.0) is unconfirmed in the project files.
 - I did not benchmark anything. The pilot load figures come from the spec assumptions above.
@@ -226,7 +229,7 @@ The NHS plan allots 3 brokers of 4 vCPU, 16 GB and 500 GB for the national publi
 | §2.1 | `edevlet-bridge` row: the only e-Devlet client, for all six consent flows |
 | §2.2 | customer-profile module in `loyalty`, gated by the profiling opt-in |
 | §3.1 | KIP-848 consumer protocol to test; `max.compaction.lag.ms` on compacted topics |
-| §3.4 | 21 topics: grant key `grantId`, `invoicing` reads CDRs, `ocpi-emsp` reads contract changes, upstream e-Devlet topic added |
+| §3.4 | 22 topics: grant key `grantId`, append-only `grant-event-logged` feed for consent-audit, `invoicing` reads CDRs, `ocpi-emsp` reads contract changes, upstream e-Devlet topic added |
 | §3.5 | Rule R8 (person-level keys on compacted topics) |
-| §6 | Trip retention corrected to 30 days; pilot storage about 11 GB |
+| §6 | Trip retention corrected to 30 days; decision logs kept 30 days; pilot storage about 14 GB |
 | §8 | Findings 6 to 10 |
