@@ -76,7 +76,7 @@ Rule: orchestrate where one team owns the flow and failure handling matters (mon
 | Consumers | `enable.auto.commit=false`, ack after processing, `max.poll.interval.ms` above the worst-case processing time, static membership (`group.instance.id`), cooperative sticky assignor | F: K 01b, 03c |
 | Identity | TLS 1.3 and mTLS client certificates through `KafkaUser`; ACLs: WRITE only for the owner; READ per consumer group | F: K 01d, I |
 | Disks | Encrypted volumes (Kafka has no encryption at rest) | F: K 01d |
-| Retention defaults | Volume 7 d, business facts 30 d, state topics compacted with `segment.ms` 1 d and `delete.retention.ms` 1 d so a tombstone takes effect within about [3] days | I from K 01c |
+| Retention defaults | Volume 7 d, business facts 30 d, state topics compacted with `segment.ms` 1 d, `max.compaction.lag.ms` [1 d] and `delete.retention.ms` 1 d so a tombstone takes effect within about [3] days on any traffic | I from K 01c |
 | DR at national scale | Second Turkey DC, MirrorMaker 2 active-passive, offsets synced; RPO 5 min and RTO 1 h as in the NHS plan | F: NHS HLD §6, K 02c |
 
 One durability profile for the whole cluster, with only batching and retention differing by class. At this volume the cost of `acks=all` is invisible, and a single profile removes a class of mistakes.
@@ -85,7 +85,7 @@ One durability profile for the whole cluster, with only batching and retention d
 
 | Class | Goal in order | Topics | Settings beyond the profile |
 |---|---|---|---|
-| A critical | durability, then latency | payments, CDRs, grants, binding, contract, trips, ledger, invoice, authorization, consent decisions | defaults |
+| A critical | durability, then latency | payments, CDRs, grants, binding, contract, trips, ledger, invoice, authorization, consent decisions | defaults; the state topics among them (grants, binding, contract) are compacted with a required key |
 | B state | durability, rebuildability | location, tariff, token, policy, price sheet, availability | `cleanup.policy=compact`, key required |
 | C volume | throughput | EVSE status, session updates, arrivals | lz4, linger 20 ms, retention 7 d |
 

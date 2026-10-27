@@ -39,7 +39,7 @@ E3 OCPI eMSP core platform and infra,X-08,"hub-gateway local read model from bin
 - [ ] Read model rebuilt from compacted topics with one command; rebuild time recorded
 - [ ] Authorize uses local state only; internal p95 within the agreed budget [0.5 s]
 - [ ] ev.policy.policy-changed.v1 replaces the synchronous policy call, or the deviation is recorded"
-"E1 Legal, compliance and consent",X-09,"Event privacy: data-class lint, no-personal-key rule, erasure drill with the DPO",Backlog,later,Phase 0 Discovery,EV_PNC_docs,Compliance agent,3,yes,X-03;K-01,phase-1;compliance-agent;v2-new;kafka;human-gate;waits-external;it:later,"Acceptance criteria:
+"E1 Legal, compliance and consent",X-09,"Event privacy: data-class lint, no-personal-key rule, erasure drill with the DPO",Backlog,later,Phase 1 Core backend,EV_PNC_docs,Compliance agent,3,yes,X-03;K-01,phase-1;compliance-agent;v2-new;kafka;human-gate;waits-external;it:later,"Acceptance criteria:
 - [ ] Schema linter fails a field tagged pii; checker rejects personal keys
 - [ ] Erasure drill: delete mapping, tombstone, compaction within the agreed lag [3 days]
 - [ ] DPO sample review of one topic per wave; sign-off stored in the repo

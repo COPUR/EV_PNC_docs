@@ -11,7 +11,7 @@
 | [adr/](adr/) | ADR-0008 to ADR-0015 (series continues after ADR-0007) |
 | [03-repo-and-kanban-updates.md](03-repo-and-kanban-updates.md) | Per-repo changes, 24 cards to amend, 12 new cards, how it fits the wartime rule |
 | [kanban/ev_pnc_backlog_v2_kafka_additions.csv](kanban/ev_pnc_backlog_v2_kafka_additions.csv) | The 12 new cards in the board's import format |
-| [tools/](tools/) and [evidence/](evidence/) | `topics.csv`, `eventflow_check.py`, `components_v2_1*.csv` and the outputs of both checks |
+| [tools/](tools/) and [evidence/](evidence/) | `topics.csv`, `eventflow_check.py` and its tests (`python3 -m unittest discover -s tools`), `components_v2_1*.csv` and the outputs of both checks |
 
 ## The decisions in short
 

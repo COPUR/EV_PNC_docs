@@ -15,7 +15,7 @@
 
 **Decision.**
 1. **Publish:** option A in JVM services; the publisher sits behind a port, so B replaces it at national scale or if relay lag becomes a problem, without changing event contracts. The Python planner implements the same outbox table layout and relay in about a hundred lines, covered by a shared contract test. D is forbidden.
-2. **Consume:** at-least-once. Offsets commit after processing, never before. Each consumer records (consumer, `ce_id`) in a unique index inside the same transaction as its effect. Cleanup job after the longest retention.
+2. **Consume:** at-least-once. Offsets commit after processing, never before. Each consumer records (consumer, `ce_id`) in a unique index inside the same transaction as its effect. Cleanup job after the longest retention of a delete topic. Compacted topics have no retention and can be replayed in full, so their consumers deduplicate by entity key and version (upsert, ignore older versions) instead of by `ce_id`; audit consumers in particular must be replay-safe.
 3. **Retries:** bounded, non-blocking retry topics with backoff, then `<topic>.<group>.dlt` with a reason header (`invalid` or `exhausted`) and an alarm. No unbounded in-place retry; no manual resend with idempotence on (a resend gets a new sequence number, K 05a).
 4. **Exactly-once:** only inside Kafka-to-Kafka stream jobs (`processing.guarantee`, `read_committed`). It is never a design assumption for a service with a database or an outside call.
 5. **Idempotency keys:** one ledger entry per source event id; one PSP capture per `paymentId` (also the PSP idempotency key); one invoice per `paymentId`; one hold per (`paymentId`, kind).

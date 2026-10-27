@@ -6,7 +6,7 @@
 
 | Repo | Change | Driven by |
 |---|---|---|
-| `EV_PNC_docs` | Add `docs/architecture/` (principles, stack) and `docs/adr/0008` to `0015`. Add `topics.csv` and `eventflow_check.py` under `tools/`. Add the loyalty and invoicing rows to `components.csv`. Put the relationship labels of stack §2.1 into the context map (P0-16). Rename P0-05 "ADR-001" to the next free number | all ADRs |
+| `EV_PNC_docs` | Add `docs/architecture/` (principles, stack) and ADR-0008 to 0015, which live under `docs/architecture/kafka-backend/adr/` until P0-02 moves the whole ADR series into one directory. Add `topics.csv` and `eventflow_check.py` under `tools/`. Add the loyalty and invoicing rows to `components.csv`. Put the relationship labels of stack §2.1 into the context map (P0-16). Rename P0-05 "ADR-001" to the next free number | all ADRs |
 | `EV_PNC_infra-modules` | Modules: Strimzi operator, Kafka cluster with node pools, `KafkaTopic` and `KafkaUser` generated from `topics.csv`, Apicurio Registry. `templates/spring-service` and a small Python template. Reusable workflow steps: schema compatibility, topic manifest diff, `eventflow_check --strict`, licence scan, redelivery kit | 0009, 0010, 0014 |
 | `EV_PNC_infra` | Kafka environment per stage, `KafkaUser` certificates in the key vault partitions, dashboards and alerts (URP, ISR shrinks, lag SLOs, publish lag, revocation time), restore test, preproduction idle-to-zero | 0009 |
 | `EV_PNC_ocpi-model` | Avro event schemas for the 20 topics, `Money` and `EventTime` types, envelope header constants, Kotlin and Python codegen (M-01 already asks for both). Schema changes follow M-02 rules | 0010 |
