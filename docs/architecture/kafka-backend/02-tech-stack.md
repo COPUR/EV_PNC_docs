@@ -1,6 +1,6 @@
 # EV_PNC technology stack with Kafka on the backend
 
-**Version:** 0.1 · **Date:** 2026-10-26 · **Status:** proposed · **Principles:** `01-principles.md` · **Decisions:** `adr/0008` to `adr/0015`
+**Version:** 0.2 (audit 2026-10-26, changes in §10) · **Date:** 2026-10-26 · **Status:** proposed · **Principles:** `01-principles.md` · **Decisions:** `adr/0008` to `adr/0015`
 **Inputs:** repo-plan v2 and the consent family, the engineering briefing (C4 containers, sequences, state tables, design review), `corridor-pilot/` (CP-*), `national-hub-service/` (NHS-*), `roaming-consent/` (RC-*), kanban v2.
 **Confidence labels:** F = from a project file or a skill chapter, I = my inference or estimate, U = unknown. Numbers in [brackets] are proposals, as in the specs.
 
@@ -14,7 +14,7 @@
 | Publishing | Transactional outbox: Spring Modulith event publication registry with Kafka externalisation; Debezium outbox later (ADR-0011) | No dual writes, no custom framework | Direct `KafkaTemplate.send` after commit |
 | Consuming | Spring for Apache Kafka, manual ack after processing, idempotent by a unique key, retry topics then a per-group dead-letter topic | At-least-once made safe | Auto-commit, blocking retries |
 | Stream processing | None at day one. Kafka Streams only for a windowed or stateful join with a written reason | Plain consumers plus Postgres upserts are simpler to run | ksqlDB, Flink |
-| Service runtime | Kotlin, a supported JDK LTS, the currently supported Spring Boot line, Spring MVC with virtual threads (ADR-0012) | One paved road | WebFlux everywhere |
+| Service runtime | Kotlin 2.2+, JDK 25 LTS, Spring Boot 4.x, Spring MVC with virtual threads (ADR-0012); telemetry stays Go for now, planner Python | One paved road; Boot 3.5 left open-source support on 30 Jun 2026 | WebFlux everywhere, starting on Boot 3 |
 | Edge | `api-gateway` on Spring Cloud Gateway (reactive), OIDC/JWT, rate limits | The one place where many concurrent I/O-bound calls justify reactive | Custom servlet gateway |
 | Persistence | PostgreSQL, one schema per service, Flyway; Spring Data JDBC for aggregates, `JdbcClient` or jOOQ for read models | Aggregate-oriented, no lazy-loading traps (SB 06b) | JPA by default, MySQL |
 | Time series | TimescaleDB on PostgreSQL for telemetry history | Already in the telemetry README; two seasons of history (CP-DATA-002) | A second database engine |
@@ -42,7 +42,7 @@ The project topic lists a payments-gateway reference stack (Java, Node.js, MySQL
 | `invoicing` | GİB private integrator | Anticorruption layer | Issuer model open (V-01) |
 | `planner` | map, traffic, weather, ferry, flight, tolls | One port and adapter per provider | Open-Meteo free tier is non-commercial |
 | `loyalty`, `pilot-analytics` | event producers | Conformist to the published events | Read-only consumers |
-| Consent bridge | e-Devlet | Anticorruption layer | Parked |
+| `edevlet-bridge` (Consent family) | e-Devlet Mobility Consent Service | Anticorruption layer; the only e-Devlet client, for all six consent flows (ADR-0007) | Parked (K-12); generic-client amendment open |
 
 ### 2.2 Aggregates and owners
 
@@ -50,7 +50,7 @@ The project topic lists a payments-gateway reference stack (Java, Node.js, MySQL
 |---|---|---|
 | `plugcharge` (incl. vehicle-identity) | VehicleBinding, Contract (EMAID), OwnerRecord | |
 | `payments` | Payment, PaymentLink | Payment: authorise, session, CDR, capture, refund (orchestrated) |
-| `loyalty` | LedgerAccount (append-only entries), EarnRules | |
+| `loyalty` (incl. customer-profile module, L-07) | LedgerAccount (append-only entries), EarnRules, Profile | The profile module reads trip, CDR and payment events only for drivers with the profiling opt-in (L-02) |
 | `invoicing` | Invoice | Invoice: waits for capture and final CDR, then issues |
 | `planner` | Trip (the process manager itself) | Trip STT |
 | `ocpi-emsp` | Token, Session, Cdr | |
@@ -73,10 +73,10 @@ Rule: orchestrate where one team owns the flow and failure handling matters (mon
 | Internal topics | RF 3, including `__consumer_offsets` and any Streams changelog | F: K 05a |
 | Compression | `lz4` on the producer, same codec on the topic | F: K 05a; Intel measured gzip better on P99 (04a); `zstd` not covered by the sources, benchmark if wanted |
 | Batching | `linger.ms` 20 and `batch.size` 128 KB on volume topics only; defaults elsewhere | F: K 05a ranges |
-| Consumers | `enable.auto.commit=false`, ack after processing, `max.poll.interval.ms` above the worst-case processing time, static membership (`group.instance.id`), cooperative sticky assignor | F: K 01b, 03c |
+| Consumers | `enable.auto.commit=false`, ack after processing, `max.poll.interval.ms` above the worst-case processing time, static membership (`group.instance.id`); the KIP-848 consumer protocol (`group.protocol=consumer`) if X-02 confirms client support, else the classic protocol with the cooperative sticky assignor | F: K 01b, 03c; I for KIP-848 |
 | Identity | TLS 1.3 and mTLS client certificates through `KafkaUser`; ACLs: WRITE only for the owner; READ per consumer group | F: K 01d, I |
 | Disks | Encrypted volumes (Kafka has no encryption at rest) | F: K 01d |
-| Retention defaults | Volume 7 d, business facts 30 d, state topics compacted with `segment.ms` 1 d, `max.compaction.lag.ms` [1 d] and `delete.retention.ms` 1 d so a tombstone takes effect within about [3] days on any traffic | I from K 01c |
+| Retention defaults | Volume 7 d, business facts 30 d, state topics compacted with `segment.ms` 1 d, `max.compaction.lag.ms` [1 d] and `delete.retention.ms` 1 d so a tombstone takes effect within about [3] days even on a quiet topic | I from K 01c |
 | DR at national scale | Second Turkey DC, MirrorMaker 2 active-passive, offsets synced; RPO 5 min and RTO 1 h as in the NHS plan | F: NHS HLD §6, K 02c |
 
 One durability profile for the whole cluster, with only batching and retention differing by class. At this volume the cost of `acks=all` is invisible, and a single profile removes a class of mistakes.
@@ -92,12 +92,12 @@ One durability profile for the whole cluster, with only batching and retention d
 ### 3.3 Naming, keys, partitions, envelope
 
 - **Name:** `ev.<context>.<fact-or-state>.v<N>`, past tense (`cdr-received`, `grant-changed`). The context is the owner's. A breaking change makes `.v2` and keeps `.v1` until the last consumer moves (dual-schema window).
-- **Key:** the entity whose events must stay in order. `paymentId` links session, CDR, payment, ledger and invoice, because it is the OCPI `authorization_reference`. Never a personal identifier, never an operator (a few big CPOs would make hot partitions).
+- **Key:** the entity whose events must stay in order. `paymentId` links session, CDR, payment, ledger and invoice, because it is the OCPI `authorization_reference`. Never a personal identifier, never an operator (a few big CPOs would make hot partitions). On a compacted topic the key is the aggregate whose full state the value carries (`grantId`, `vehicleRef`, `emaid`), because compaction keeps one record per key.
 - **Partitions:** 6 for low volume, 12 for entity-keyed volume, 24 only at national scale (the consent plan also uses 6 and 24). Partition counts only grow and growth re-maps keys, so scale by a new topic version, not by expansion.
 - **Envelope** (headers, so the payload stays the pure fact): `ce_id` (the idempotency key), `ce_type`, `ce_source`, `ce_time`, `ce_subject`, `traceparent`, `correlationid` (`paymentId` or `tripId`), `dataclass` (`public` or `pseudonymous`), `expires` (time after which a consumer drops the event, from the design review's re-plan fix).
 - **Dead letters:** `<topic>.<consumer-group>.dlt`, one per consumer group, with headers for the reason (`invalid`, `exhausted`) and the original topic, partition and offset. A DLT message raises an alarm.
 
-### 3.4 Topic catalogue (21 topics, generated from `tools/topics.csv`)
+### 3.4 Topic catalogue (22 topics, generated from `tools/topics.csv`)
 
 | Topic | Owner (single writer) | Key | Part. | Retention | Class | Data | Consumers |
 |---|---|---|---|---|---|---|---|
@@ -106,13 +106,13 @@ One durability profile for the whole cluster, with only batching and retention d
 | `ev.roaming.evse-status-changed.v1` | ocpi-emsp | evseUid | 12 | 7d | C | public | telemetry |
 | `ev.roaming.token-changed.v1` | ocpi-emsp | tokenUid | 6 | compacted | B | pseudonymous | hub-gateway |
 | `ev.roaming.session-updated.v1` | ocpi-emsp | paymentId | 12 | 7d | C | pseudonymous | telemetry, pilot-analytics |
-| `ev.roaming.cdr-received.v1` | ocpi-emsp | paymentId | 12 | 30d | A | pseudonymous | payments, loyalty, pilot-analytics |
+| `ev.roaming.cdr-received.v1` | ocpi-emsp | paymentId | 12 | 30d | A | pseudonymous | payments, loyalty, invoicing, pilot-analytics |
 | `ev.hub.evse-status-changed.v1` | hub-gateway | evseUid | 12 | 7d | C | public | telemetry |
 | `ev.hub.authorization-decided.v1` | hub-gateway | attemptId | 12 | 30d | A | pseudonymous | pilot-analytics |
-| `ev.pnc.contract-changed.v1` | plugcharge | emaid | 6 | compacted | A | pseudonymous | hub-gateway, pilot-analytics |
+| `ev.pnc.contract-changed.v1` | plugcharge | emaid | 6 | compacted | A | pseudonymous | hub-gateway, ocpi-emsp, pilot-analytics |
 | `ev.identity.vehicle-binding-changed.v1` | plugcharge | vehicleRef | 6 | compacted | A | pseudonymous | hub-gateway, pilot-analytics |
-| `ev.consent.grant-changed.v1` | consent-registry | driverRef | 6 | compacted | A | pseudonymous | consent-decision, ocpi-emsp, hub-gateway, plugcharge |
-| `ev.consent.grant-event-logged.v1` | consent-registry | grantEventId | 6 | 30d | A | pseudonymous | consent-audit |
+| `ev.consent.grant-changed.v1` | consent-registry | grantId | 6 | compacted | A | pseudonymous | consent-decision, ocpi-emsp, hub-gateway, plugcharge |
+| `ev.consent.grant-event-logged.v1` | consent-registry | grantId | 6 | 30d | A | pseudonymous | consent-audit |
 | `ev.consent.decision-logged.v1` | consent-decision | decisionId | 6 | 30d | A | pseudonymous | consent-audit |
 | `ev.policy.policy-changed.v1` | policy-engine | driverRef | 6 | compacted | B | pseudonymous | hub-gateway, ocpi-emsp |
 | `ev.payment.payment-state-changed.v1` | payments | paymentId | 12 | 30d | A | pseudonymous | loyalty, invoicing, pilot-analytics |
@@ -122,19 +122,24 @@ One durability profile for the whole cluster, with only batching and retention d
 | `ev.telemetry.evse-availability-changed.v1` | telemetry | evseUid | 12 | compacted | B | public | planner, pilot-analytics |
 | `ev.loyalty.bonus-earned.v1` | loyalty | accountId | 6 | 7d | A | pseudonymous | api-gateway, pilot-analytics |
 | `ev.invoice.invoice-state-changed.v1` | invoicing | paymentId | 6 | 30d | A | pseudonymous | api-gateway, pilot-analytics |
+| `ev.edevlet.upstream-grant-changed.v1` | edevlet-bridge | upstreamGrantRef | 6 | compacted | B | pseudonymous | consent-registry, plugcharge |
 
 Notes on the catalogue:
-- It is a draft v0.1 derived from the sequences in the briefing and the specs. The Architect agent confirms owners and consumers on X-04.
+- **Changed in 0.2:** `grant-changed` is keyed by `grantId`, not `driverRef`. A grant is per driver, hub and purpose, and compaction keeps one record per key, so the v0.1 key would have kept only each driver's last grant and a rebuilt `hub-gateway` read model would have lost the others. Check R8 now catches this.
+- **Changed in 0.2:** `invoicing` consumes `cdr-received`. The invoice needs the final CDR's lines and waits for both CDR and capture (loyalty-invoicing design notes).
+- **Changed in 0.2:** `ocpi-emsp` consumes `contract-changed`. Without it a revoked binding never reached the CPOs: `ocpi-emsp` owns the token sync, but v0.1 only fed it grants and policies.
+- **New in 0.2:** `ev.edevlet.upstream-grant-changed.v1`, planned for wave 3 with `edevlet-bridge`. The bridge never writes `ev.consent.*`; the registry stays the single writer (ADR-0007, ADR-0010 item 11).
+- It is a draft v0.2 derived from the sequences in the briefing and the specs. The Architect agent confirms owners and consumers on X-04.
 - `ev.policy.policy-changed.v1` is new. The deck calls `policy-engine` synchronously from `hub-gateway`; an event-fed lookup keeps that call out of the 10 s authorize window.
 - Raw location traces never go on Kafka. The app sends positions to `planner` over HTTP, and only `arrival-observed` and `trip-state-changed` leave it.
-- `consent-audit` never reads the compacted `grant-changed`: compaction could fold an active, revoked, active sequence into its last value while the consumer is down, and the revocation evidence (RC-REV-002) would never reach the record. `consent-registry` publishes every transition through its outbox to `ev.consent.grant-event-logged.v1` as well, a delete topic with 30 days.
+- `consent-audit` never reads the compacted `grant-changed`: compaction could fold an active, revoked, active sequence into its last value while the consumer is down, and the revocation evidence (RC-REV-002) would never reach the record. `consent-registry` publishes every transition through its outbox to `ev.consent.grant-event-logged.v1` as well, a delete topic with 30 days keyed by `grantId`, so the transitions of one grant reach the audit store in order.
 - `ev.consent.decision-logged.v1` keeps the 30-day business-fact retention (DP-6) because the audit store is filled from it: a `consent-audit` outage shorter than 30 days loses nothing, and a consumer-lag alert fires after 1 day. `ev.loyalty.bonus-earned.v1` stays at 7 days because it is only a notification; the loyalty ledger is the record.
 - `ev.loyalty.bonus-earned.v1` and `ev.invoice.invoice-state-changed.v1` are consumed by `api-gateway` for push messages. Who owns the push dispatcher is open.
 - `pilot-analytics` reads 14 topics and writes none. That is intended: it is a sink, and its KPI jobs are batch.
 
 ### 3.5 Checks that run today
 
-`tools/eventflow_check.py topics.csv --strict` enforces seven rules (one writer, known consumers, key present and not personal, partition counts, retention, data class, event loops). Result on the catalogue: all rules pass, with one declared loop, `planner` and `telemetry` (arrivals feed occupancy profiles, availability feeds the planner; both sides work without the other's data, so it is a feedback loop and not a startup dependency). A trial run with `plugcharge` also consuming `ev.hub.authorization-decided.v1` fails with an undeclared loop `hub-gateway` <-> `plugcharge`, so the check does catch a real cycle. Output is in `evidence/`.
+`tools/eventflow_check.py topics.csv --strict` enforces eight rules (one writer, known consumers, key present and not personal, partition counts, retention, data class, event loops, person-level keys on compacted topics). Result on the v0.2 catalogue: all rules pass, with one declared loop, `planner` and `telemetry` (arrivals feed occupancy profiles, availability feeds the planner; both sides work without the other's data, so it is a feedback loop and not a startup dependency). A trial run with `plugcharge` also consuming `ev.hub.authorization-decided.v1` fails with an undeclared loop `hub-gateway` <-> `plugcharge`, so the check does catch a real cycle. Run against the v0.1 catalogue, the new rule R8 fails on `grant-changed` and `policy-changed` (the latter passes once its note says the value is the driver's full policy). Outputs are in `evidence/`.
 
 ## 4. Algorithms and data structures by component
 
@@ -180,7 +185,7 @@ Assumptions: 1,000 EVSE in scope with two status channels and one change per 8 m
 | Trip events and arrivals | 0.19 | 1.5 GB |
 | Consent decisions | 1.2 | 4.5 GB |
 | **Pilot total** | about 6 (peak at 10× about 60) | about 14 GB |
-| National (50,000 sockets with one status channel each, as the NHS HLD counts them, and 2 M decisions per day) | about 127 | about 280 GB (decisions at 30 days add about 70 GB) |
+| National (50,000 sockets with one status channel each, as the NHS HLD counts them, and 2 M decisions per day) | about 127 | about 280 GB (decisions at 30 days add about 90 GB) |
 
 With two status channels per socket, as in the pilot row, status alone is about 208 messages per second and retention about 380 GB; the conclusion below holds either way. The NHS plan allots 3 brokers of 4 vCPU, 16 GB and 500 GB for the national public side, which covers the national row. The pilot is about 6 messages per second, orders of magnitude below what a small broker serves, so **the cluster is sized for durability and operability, not throughput**. The 100 GB disks leave room for 30-day topics, broker restarts and a rebuild. X-10 replaces these estimates with a measured baseline.
 
@@ -198,14 +203,33 @@ With two status channels per socket, as in the pilot row, status alone is about 
 ## 8. Inconsistencies found in the existing plan
 
 1. **Missing repos.** Eight cards (L-04, L-05, L-07, L-12 and V-04 to V-07) point at `EV_PNC_loyalty` and `EV_PNC_invoicing`, which are not in the 19-repo plan or in `components.csv`. The packaging check with both added (`tools/components_v2_1.csv`) still has no cycle, 21 repos in all. Suggested card X-12.
-2. **Telemetry runtime.** The README says Go; the rest of the platform is Kotlin. ADR-0012 proposes the JVM for one runtime less. Your decision.
+2. **Telemetry runtime.** The README says Go; the rest of the platform is Kotlin. v0.1 of ADR-0012 proposed the JVM for one runtime less; revision 0.2 recommends keeping Go (ADR-0012 item 4; see finding 6 below). X-01 decides.
 3. **Vehicle identity** is a separate container in the deck and a module of `plugcharge` in the repo plan. This document follows the repo plan.
 4. **ADR numbering.** P0-05 is titled "ADR-001" while the series runs ADR-0001 to ADR-0007. Rename it when it is written.
 5. **Kafka in the national plan.** The NHS HLD names Kafka for the public side too; that cluster is the public bodies' to run, not ours. This stack covers the EV_PNC_ and Consent services only.
 
+6. **Telemetry is already Go.** C-01 (corridor geometries and EVSE index) is written in Go with a Go CI workflow in the open pull request COPUR/EV_PNC_telemetry#2. v0.1 proposed a move to Kotlin without counting that; revision 0.2 of ADR-0012 keeps Go.
+7. **Compacted grant topic keyed by person.** See the catalogue notes; fixed in 0.2.
+8. **Invoicing could not see the final CDR.** Fixed in 0.2.
+9. **e-Devlet diagrams still name the retired `EV_PNC_consent`.** The Solution design tab of the e-Devlet request doc had it as the e-Devlet client; ADR-0007 gives that role to `EV_PnC_Consent_edevlet-bridge` alone. Fixed in that doc (v0.6).
+10. **Nobody owns `driverRef`.** No component in `components.csv` holds the driver account. ADR-0013 now names the account record of the OIDC provider; P0-16 confirms it.
+
 ## 9. Limits
 
-- Versions are not pinned. Kafka 4.x, the Spring Boot line and Modulith need a compatibility check in X-02 and X-05, and X-05 must confirm the chosen Spring Boot line is inside its open-source support window before ADR-0012 is accepted; I did not run them here.
+- Versions are not pinned. Kafka 4.x, Spring Boot 4.x, Spring for Apache Kafka and Spring Modulith 2.x need a compatibility check in X-02 and X-05; X-02 confirms the pinned Spring Boot line is inside its open-source support window, the condition on which X-01 accepts ADR-0012; nothing was run here.
 - Apicurio's Confluent-compatible API and Spring Modulith's Kafka externalisation are from my knowledge, not from the skills; the spikes confirm them.
 - Topic catalogue, sizes and budgets are estimates. Hub behaviour (Hubject's 10 s, GIREVE PNCP 1.2.0) is unconfirmed in the project files.
 - I did not benchmark anything. The pilot load figures come from the spec assumptions above.
+
+## 10. Changes in 0.2 (audit, 2026-10-26)
+
+| Section | Change |
+|---|---|
+| §1, ADR-0012 | Spring Boot 4.x and JDK 25 LTS named instead of "a supported JDK LTS and the currently supported Spring Boot line"; telemetry stays Go |
+| §2.1 | `edevlet-bridge` row: the only e-Devlet client, for all six consent flows |
+| §2.2 | customer-profile module in `loyalty`, gated by the profiling opt-in |
+| §3.1 | KIP-848 consumer protocol to test; `max.compaction.lag.ms` on compacted topics |
+| §3.4 | 22 topics: grant key `grantId`, append-only `grant-event-logged` feed for consent-audit, `invoicing` reads CDRs, `ocpi-emsp` reads contract changes, upstream e-Devlet topic added |
+| §3.5 | Rule R8 (person-level keys on compacted topics) |
+| §6 | Trip retention corrected to 30 days; decision logs kept 30 days; pilot storage about 14 GB |
+| §8 | Findings 6 to 10 |

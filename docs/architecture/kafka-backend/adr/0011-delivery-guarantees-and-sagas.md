@@ -1,6 +1,6 @@
 # ADR-0011: Delivery guarantees: outbox, idempotent consumers, bounded retries, sagas
 
-**Status:** proposed (accept on card X-01) · **Date:** 2026-10-26
+**Status:** proposed (accept on card X-01) · **Date:** 2026-10-26 · **Revision:** 0.2 (audit 2026-10-26: invoicing consumes the final CDR)
 
 **Context.** The deck's sequences already say "CDR event via outbox (Kafka, at least once)", "drop if event id already seen" and "one capture per payment id". The money path is session, CDR, capture, ledger and invoice, spread over four services. Exactly-once in Kafka holds only for Kafka-to-Kafka work (K 05a); a PSP call, a database write and a push message can still repeat.
 
@@ -28,6 +28,6 @@
 - The redelivery kit in `EV_PNC_simulator` (duplicate, reorder, crash before commit, poison message, slow consumer) is a merge gate for consumers. For `consent-audit` it adds one scenario: a newer version and then a tombstone arrive for an audited grant, and the audit rows are unchanged; and `consent-audit` is down longer than the compaction window, and no grant transition is lost.
 - DLT messages are an operations duty: the owner triages within one working day [proposed].
 - Relay lag becomes an SLO (publish lag p99 [2 s]); alerts on the outbox backlog.
-- A late final CDR or a missing capture holds the invoice on a timer with an alert, as in the loyalty design notes.
+- A late final CDR or a missing capture holds the invoice on a timer with an alert, as in the loyalty design notes. `invoicing` therefore consumes both `cdr-received` (invoice lines) and `payment-state-changed` (capture), and issues when both have arrived for the same `paymentId`. v0.1 of the catalogue left `invoicing` off the CDR topic.
 
 **Sources.** apache-kafka (01b commit strategy, 05a idempotence and retries, 06a); microservices-and-ddd (02a outbox, 02b sagas, 08d transactions, 07b idempotent receiver); java-spring-boot (06c events, 07c DLQ); `engineering-briefing/loyalty-invoicing/README.md`; `engineering-briefing/review/README.md`.

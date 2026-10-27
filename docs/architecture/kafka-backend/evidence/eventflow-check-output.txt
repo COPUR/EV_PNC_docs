@@ -1,6 +1,6 @@
-21 topics, 180 partitions, 540 replicas at RF 3 (180 per broker on 3 brokers)
-owners: consent-decision (1), consent-registry (2), hub-gateway (2), invoicing (1), loyalty (1), ocpi-emsp (6), payments (1), planner (2), plugcharge (2), policy-engine (1), pricing (1), telemetry (1)
+22 topics, 186 partitions, 558 replicas at RF 3 (186 per broker on 3 brokers)
+owners: consent-decision (1), consent-registry (2), edevlet-bridge (1), hub-gateway (2), invoicing (1), loyalty (1), ocpi-emsp (6), payments (1), planner (2), plugcharge (2), policy-engine (1), pricing (1), telemetry (1)
 services with no topic as owner: api-gateway, consent-audit, pilot-analytics
-topics consumed per service: pilot-analytics 14, telemetry 5, hub-gateway 5, loyalty 3, ocpi-emsp 2, consent-audit 2, planner 2, api-gateway 2, pricing 1, payments 1, consent-decision 1, plugcharge 1, invoicing 1
+topics consumed per service: pilot-analytics 14, telemetry 5, hub-gateway 5, loyalty 3, ocpi-emsp 3, invoicing 2, plugcharge 2, consent-audit 2, planner 2, api-gateway 2, pricing 1, payments 1, consent-decision 1, consent-registry 1
 event loops (SCC): [['planner', 'telemetry']] | declared: [['planner', 'telemetry']]
 all rules pass
