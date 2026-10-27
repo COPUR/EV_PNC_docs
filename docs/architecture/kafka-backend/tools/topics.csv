@@ -1,0 +1,22 @@
+topic,owner,key,partitions,cleanup,retention,class,data_class,consumers,note
+ev.roaming.location-changed.v1,ocpi-emsp,locationUid,6,compact,,B-state,public,telemetry;pilot-analytics,P1-07 change events; OCPI Locations from CPOs
+ev.roaming.tariff-changed.v1,ocpi-emsp,tariffUid,6,compact,,B-state,public,pricing;pilot-analytics,P1-07; NGP tariffs normalised by pricing
+ev.roaming.evse-status-changed.v1,ocpi-emsp,evseUid,12,delete,7d,C-volume,public,telemetry,live status via OCPI; 15-minute freshness rule is applied by telemetry
+ev.roaming.token-changed.v1,ocpi-emsp,tokenUid,6,compact,,B-state,pseudonymous,hub-gateway,token sync to hubs after consent gate
+ev.roaming.session-updated.v1,ocpi-emsp,paymentId,12,delete,7d,C-volume,pseudonymous,telemetry;pilot-analytics,single writer of sessions for all three channels; feeds KPI-6 power sharing
+ev.roaming.cdr-received.v1,ocpi-emsp,paymentId,12,delete,30d,A-critical,pseudonymous,payments;loyalty;pilot-analytics,single writer of CDRs; hub CDRs enter through the ingest port of ocpi-emsp
+ev.hub.evse-status-changed.v1,hub-gateway,evseUid,12,delete,7d,C-volume,public,telemetry,Hubject PullEvseStatus and GIREVE OCPI
+ev.hub.authorization-decided.v1,hub-gateway,attemptId,12,delete,30d,A-critical,pseudonymous,pilot-analytics,KPI-3 friction and StatusCode catalogue
+ev.pnc.contract-changed.v1,plugcharge,emaid,6,compact,,A-critical,pseudonymous,hub-gateway;pilot-analytics,EMAID and PCID lifecycle
+ev.identity.vehicle-binding-changed.v1,plugcharge,vehicleRef,6,compact,,A-critical,pseudonymous,hub-gateway;pilot-analytics,vehicle-identity module; state per VehicleBinding STT; no VIN or plate in payload
+ev.consent.grant-changed.v1,consent-registry,driverRef,6,compact,,A-critical,pseudonymous,consent-decision;ocpi-emsp;hub-gateway;plugcharge,RoamingGrantActive and RoamingGrantRevoked; revocation SLA RC-REV-002
+ev.consent.grant-event-logged.v1,consent-registry,grantEventId,6,delete,30d,A-critical,pseudonymous,consent-audit,"append-only grant and revocation facts, one per transition, for the audit store; delete topic with 30 d so a consent-audit outage shorter than that loses no transition (grant-changed is compacted and would)"
+ev.consent.decision-logged.v1,consent-decision,decisionId,6,delete,30d,A-critical,pseudonymous,consent-audit,async audit of PDP decisions; audit store is the record; 30 d (business facts) so a consumer outage cannot lose audit entries; alert on consent-audit lag above 1 d
+ev.policy.policy-changed.v1,policy-engine,driverRef,6,compact,,B-state,pseudonymous,hub-gateway;ocpi-emsp,proposed: removes a synchronous policy call from the Plug&Charge hot path
+ev.payment.payment-state-changed.v1,payments,paymentId,12,delete,30d,A-critical,pseudonymous,loyalty;invoicing;pilot-analytics,PaymentAuthorised Captured Refunded; PaymentCompleted for invoicing
+ev.pricing.price-sheet-published.v1,pricing,priceSheetId,6,compact,,B-state,public,planner;pilot-analytics,ADR-0006 price sheet versions
+ev.trip.trip-state-changed.v1,planner,tripId,12,delete,30d,A-critical,pseudonymous,loyalty;pilot-analytics,Trip STT; TripCompleted carries verified km only
+ev.trip.arrival-observed.v1,planner,evseUid,12,delete,7d,C-volume,pseudonymous,telemetry;pilot-analytics,KPI-1 arrival within 75 m; no raw location trace
+ev.telemetry.evse-availability-changed.v1,telemetry,evseUid,12,compact,,B-state,public,planner;pilot-analytics,derived availability with freshness flag and source
+ev.loyalty.bonus-earned.v1,loyalty,accountId,6,delete,7d,A-critical,pseudonymous,api-gateway;pilot-analytics,push to the app; ledger is the record, so 7 d is enough for a notification
+ev.invoice.invoice-state-changed.v1,invoicing,paymentId,6,delete,30d,A-critical,pseudonymous,api-gateway;pilot-analytics,Invoice STT; receipt and PDF delivery
