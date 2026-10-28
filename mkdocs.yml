@@ -1,0 +1,42 @@
+site_name: EV_PNC documentation
+site_description: Architecture, decisions, RFP, corridor pilot and gate criteria for the EV_PNC platform
+repo_url: https://github.com/COPUR/EV_PNC_docs
+docs_dir: docs
+theme:
+  name: material
+  language: en
+markdown_extensions:
+  - tables
+  - admonition
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+nav:
+  - Home: index.md
+  - Purpose: purpose.md
+  - RFP:
+      - RFP v2.1: rfp/rfp-v2.md
+      - Corrections: rfp/CHANGES.md
+  - Decisions:
+      - Index: adr/index.md
+      - Template: adr/template.md
+      - ADR-0001: adr/0001-translate-at-the-edge.md
+      - ADR-0002: adr/0002-hubject-online-emp.md
+      - ADR-0003: adr/0003-plugcharge-port.md
+      - ADR-0004: adr/0004-echx-ocpi-only.md
+      - ADR-0005: adr/0005-hub-sequencing.md
+      - ADR-0006: adr/0006-guest-pricing.md
+  - Corridor pilot:
+      - Overview: pilot/index.md
+      - Scope: pilot/scope.md
+      - KPIs: pilot/kpis.md
+      - Requirements: pilot/spec.md
+      - Tasks: pilot/tasks.md
+      - Go/no-go: pilot/go-no-go.md
+  - Truth reports:
+      - Rules: truth-report/index.md
+      - Template: truth-report/TEMPLATE.md
+      - 2026-10-25 baseline: truth-report/2026-10-25-baseline.md
+  - Archive: archive/index.md

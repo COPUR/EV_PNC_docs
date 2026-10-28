@@ -1,0 +1,33 @@
+requirement_id,area,priority,confidence,source,acceptance,task,status
+CP-GEO-001,GEO,pilot,user,scope.md §1,corridor-planning.feature,T-CP-01,ready
+CP-GEO-002,GEO,pilot,user,"kpis.md ""Genel ölçüm kuralları""",corridor-planning.feature,T-CP-02,ready
+CP-GEO-003,GEO,pilot,user,scope.md §1,runbook,T-CP-21,ready
+CP-NAV-001,NAV,pilot,user,scope.md §2 F1,corridor-planning.feature,T-CP-03,ready
+CP-NAV-002,NAV,pilot,inference,"scope.md §2 F1, §1 A4 (air-conditioning load)",corridor-planning.feature,T-CP-04,ready
+CP-NAV-003,NAV,pilot,inference,"scope.md §2 F1, F5",corridor-planning.feature,T-CP-05,ready
+CP-NAV-004,NAV,pilot,user,scope.md §1 A1,corridor-planning.feature,T-CP-05,ready
+CP-NAV-005,NAV,later,user,scope.md §1 A1,corridor-planning.feature,T-CP-06,ready
+CP-IDLE-001,IDLE,pilot,user,"scope.md §2 F2, F7",idle-waiting.feature,T-CP-07,ready
+CP-IDLE-002,IDLE,pilot,user,"kpis.md KPI-1, KPI-4",idle-waiting.feature,T-CP-07,ready
+CP-IDLE-003,IDLE,pilot,fact,"Şarj Hizmeti Yönetmeliği amendment, Resmî Gazete 2026-03-23 (secondary: rekabetregulasyon.com, ntv.com.tr); scope.md §2 F2",idle-waiting.feature,T-CP-08,ready
+CP-IDLE-004,IDLE,pilot,user,kpis.md KPI-6,data-foundation.feature,T-CP-04;T-CP-11,ready
+CP-PNC-001,PNC,pilot,user,kpis.md KPI-3,pnc-friction.feature,T-CP-13,ready
+CP-PNC-002,PNC,pilot,inference,"kpis.md ""İkincil göstergeler""",pnc-friction.feature,T-CP-13,ready
+CP-PNC-003,PNC,pilot,inference,scope.md §2 F3,pnc-friction.feature,T-CP-14,ready
+CP-ACCESS-001,ACCESS,pilot,user,scope.md §2 F4; ../adr/0005-hub-sequencing.md,multi-operator.feature,T-CP-15,ready
+CP-ACCESS-002,ACCESS,pilot,inference,inference from ADR-0006,multi-operator.feature,T-CP-15,ready
+CP-ACCESS-003,ACCESS,pilot,user,go-no-go.md K1,multi-operator.feature,T-CP-16,ready
+CP-PEAK-001,PEAK,pilot,user,"kpis.md ""Genel ölçüm kuralları""",idle-waiting.feature,T-CP-09,ready
+CP-PEAK-002,PEAK,pilot,user,scope.md §2 F5,idle-waiting.feature,T-CP-09,ready
+CP-PRICE-001,PRICE,pilot,fact,../adr/0006-guest-pricing.md; Şarj Hizmeti Yönetmeliği amendment 2026-03-23 (secondary),guest-pricing.feature,T-CP-17,ready
+CP-PRICE-002,PRICE,pilot,user,go-no-go.md K8 (updated 2026-10-25),guest-pricing.feature,T-CP-17,ready
+CP-PRICE-003,PRICE,pilot,inference,"kpis.md ""İkincil göstergeler""",runbook,T-CP-18,ready
+CP-DATA-001,DATA,pilot,user,kpis.md KPI-7,data-foundation.feature,T-CP-10,ready
+CP-DATA-002,DATA,pilot,user,scope.md §2 F7,data-foundation.feature,T-CP-11,ready
+CP-DATA-003,DATA,pilot,user,scope.md §2 F7,data-foundation.feature,T-CP-11,ready
+CP-DATA-004,DATA,pilot,fact,https://www.epdk.gov.tr/Detay/Icerik/3-0-226/web-servisler (station list REST service); (hub analysis) 03-turkiye-todo.md TR-24,data-foundation.feature,T-CP-12,ready
+CP-DATA-005,DATA,pilot,user,kpis.md KPI-7,kpi-measurement.feature,T-CP-19,ready
+CP-KPI-001,KPI,pilot,user,kpis.md,kpi-measurement.feature,T-CP-19,ready
+CP-KPI-002,KPI,pilot,inference,"kpis.md ""Genel ölçüm kuralları""",kpi-measurement.feature,T-CP-19,ready
+CP-KPI-003,KPI,pilot,user,kpis.md KPI-1,kpi-measurement.feature,T-CP-20,ready
+CP-KPI-004,KPI,pilot,inference,"kpis.md ""Genel ölçüm kuralları""; (hub analysis) 03-turkiye-todo.md TR-05",kpi-measurement.feature,T-CP-20,ready
