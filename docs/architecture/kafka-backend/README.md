@@ -19,7 +19,7 @@
 2. **Apache Kafka 4.x in KRaft, run by Strimzi on Kubernetes in a Turkey region.** 3 brokers, 3 controllers, RF 3, min ISR 2, `acks=all`, idempotent, one durability profile (ADR-0009).
 3. **Avro in an Apicurio registry, headers envelope, `ev.<context>.<fact>.v<N>` names, one writer per topic enforced by ACL; compacted topics keyed by the aggregate id** (ADR-0010).
 4. **Transactional outbox (Spring Modulith), idempotent consumers, bounded retries to per-group dead letters, sagas for money and trips** (ADR-0011).
-5. **Kotlin on Spring Boot 4.x and JDK 25, MVC with virtual threads, reactive only at the gateway; Spring Data JDBC; telemetry stays Go for now (C-01 is already Go); planner stays Python** (ADR-0012).
+5. **Java 25 on Spring Boot 4.x, MVC with virtual threads, reactive only at the gateway; Spring Data JDBC; telemetry is Go (C-01 is already Go); the planner is Go (your decision, 2026-10-28)** (ADR-0012, revision 0.4).
 6. **No personal data on topics:** only public or pseudonymous, no raw location, no VIN or plate (ADR-0013).
 7. **No shared platform library:** a template plus off-the-shelf libraries. A `platform-kit` fails the packaging check (zone of pain) (ADR-0014).
 8. **Planner: DP over stop × SoC bucket on a route-ordered DAG, brute-force oracle, no code from teaching libraries** (ADR-0015).
@@ -33,7 +33,7 @@
 
 ## Decisions I need from you
 
-1. Accept, change or reject the ADRs (card X-01). The two with the biggest cost: ADR-0008 (Kafka at pilot size) and ADR-0012 item 4 (telemetry: keep Go, recommended in 0.2, or move to Kotlin).
+1. Accept, change or reject the ADRs (card X-01). The two with the biggest cost: ADR-0008 (Kafka at pilot size) and ADR-0012 item 4 (telemetry: keep Go, recommended in 0.2, or move to Java).
 2. Which hosting provider in a Turkey region, and is a managed Kafka there acceptable if one exists (ADR-0009).
 3. Create `EV_PNC_loyalty` and `EV_PNC_invoicing` (card X-12).
 4. Put only X-01 (2 points) in I3, move X-02 and X-03 to I4, and defer A-01. Revised in 0.2, see `03-repo-and-kanban-updates.md` §4.
@@ -55,7 +55,7 @@ A second review checked this package against ADR-0007, repo-plan v2, kanban v2, 
 | 1 | `grant-changed` keyed by `driverRef`: compaction keeps one record per key, so only a driver's last per-hub grant survives a rebuild | High | `topics.csv`, ADR-0010 item 5, check R8 |
 | 2 | `max.compaction.lag.ms` (added during the review of #3) was set in ADR-0013 and stack §3.1 but not in the platform ADR | Low | ADR-0009 (clarification) |
 | 3 | v0.1 named only "the currently supported Spring Boot line"; Boot 3.5, the last 3.x line, left open-source support on 30 Jun 2026, so 4.x is now named | Medium | ADR-0012, TP-2, stack §1 |
-| 4 | Telemetry "Go to Kotlin" ignored that C-01 is already Go (COPUR/EV_PNC_telemetry#2) | Medium | ADR-0012 item 4 (keep Go), X-01, X-06 |
+| 4 | Telemetry "Go to the JVM" ignored that C-01 is already Go (COPUR/EV_PNC_telemetry#2) | Medium | ADR-0012 item 4 (keep Go), X-01, X-06 |
 | 5 | `invoicing` did not consume `cdr-received`, but issues only after the final CDR | Medium | `topics.csv`, ADR-0011 |
 | 5a | `ocpi-emsp` did not consume `contract-changed`, so a revoked binding never invalidated the EMAID token at CPOs | High | `topics.csv` |
 | 6 | Deferring P0-13 would remove K6 and K8 evidence from the gate; X-02 and X-03 are not gate work | Medium | 03 §4, ADR-0008 fallback date, CSV |
@@ -65,3 +65,7 @@ A second review checked this package against ADR-0007, repo-plan v2, kanban v2, 
 | 10 | Consumer rebalance protocol: KIP-848 in Kafka 4.x not considered | Low | ADR-0009, X-02 |
 | 11 | JDK 21 virtual threads pin on `synchronized`; JDK 25 does not | Low | ADR-0012, TP-2 |
 | 12 | Redis licence note out of date (AGPLv3 option since Redis 8) | Low | TP-1 |
+
+## Revision 0.3 (2026-10-28)
+
+The product owner set the stack: backend Java and Go, mobile React Native (Android 9.0+, iOS 15.5+). The earlier JVM-language choice came from the repo-plan READMEs, not from the product owner, and ADR-0012 revisions 0.1 and 0.2 kept it. Java 25 replaces it in ADR-0012, principle TP-2, the stack table, the generated event classes and the cards. The planner is Go (decided 2026-10-28; the repo plan said Python).

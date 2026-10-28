@@ -8,7 +8,7 @@
 
 | Option | For | Against |
 |---|---|---|
-| A Avro with a registry | Compact, strong evolution rules, the Kafka books' default, generated Kotlin classes | No native Swift/Kotlin story, but devices never read Kafka |
+| A Avro with a registry | Compact, strong evolution rules, the Kafka books' default, generated Java classes | No native mobile story, but devices never read Kafka |
 | B Protobuf with a registry | One IDL with gRPC; good codegen | Adds a second IDL because REST stays OpenAPI; evolution rules need more care |
 | C JSON Schema | Already used for receipts | Larger, weaker enforcement, easy to drift |
 
@@ -28,7 +28,7 @@
 **Consequences.**
 - Schema changes are pull requests reviewed by consumer owners. A consumer-driven contract test per consumer runs in the producer's CI.
 - Avro codegen is part of the `ocpi-model` build; its version bump rules (M-02) apply to schemas.
-- The planner (Python) uses the same schemas through an Avro library and the same header names.
+- The planner and telemetry (Go) use the same schemas through an Avro library and the same header names.
 - Compatibility mode and Apicurio behaviour are checked in spike X-03 against a replay of recorded simulator traffic.
 - Header-based envelope keeps payloads as pure facts; the cost is that tools must show headers when debugging. A debug consumer in the simulator prints them.
 

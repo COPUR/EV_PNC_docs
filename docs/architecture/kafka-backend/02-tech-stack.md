@@ -14,19 +14,19 @@
 | Publishing | Transactional outbox: Spring Modulith event publication registry with Kafka externalisation; Debezium outbox later (ADR-0011) | No dual writes, no custom framework | Direct `KafkaTemplate.send` after commit |
 | Consuming | Spring for Apache Kafka, manual ack after processing, idempotent by a unique key, retry topics then a per-group dead-letter topic | At-least-once made safe | Auto-commit, blocking retries |
 | Stream processing | None at day one. Kafka Streams only for a windowed or stateful join with a written reason | Plain consumers plus Postgres upserts are simpler to run | ksqlDB, Flink |
-| Service runtime | Kotlin 2.2+, JDK 25 LTS, Spring Boot 4.x, Spring MVC with virtual threads (ADR-0012); telemetry stays Go for now, planner Python | One paved road; Boot 3.5 left open-source support on 30 Jun 2026 | WebFlux everywhere, starting on Boot 3 |
+| Service runtime | Java 25 (LTS), Spring Boot 4.x, Spring MVC with virtual threads (ADR-0012); telemetry and planner are Go | One paved road; Boot 3.5 left open-source support on 30 Jun 2026 | WebFlux everywhere, starting on Boot 3 |
 | Edge | `api-gateway` on Spring Cloud Gateway (reactive), OIDC/JWT, rate limits | The one place where many concurrent I/O-bound calls justify reactive | Custom servlet gateway |
 | Persistence | PostgreSQL, one schema per service, Flyway; Spring Data JDBC for aggregates, `JdbcClient` or jOOQ for read models | Aggregate-oriented, no lazy-loading traps (SB 06b) | JPA by default, MySQL |
 | Time series | TimescaleDB on PostgreSQL for telemetry history | Already in the telemetry README; two seasons of history (CP-DATA-002) | A second database engine |
 | Geo | PostGIS for corridor geometry and "within 2 km"; H3 resolution 8 for location privacy | Spec asks for both (CP-GEO-002, CP-KPI-004) | Hand-written k-d tree |
 | Cache | Redis-compatible cache (Valkey if self-hosted, licence check) plus Caffeine in the process | Only data that can be rebuilt | Cache as a store |
-| Planner | Python, FastAPI, NumPy; the optimiser is a layered-DAG dynamic programme (ADR-0015); OR-Tools optional | Fast model iteration; the DP does not need a solver | Rewrite in Kotlin now |
-| Mobile | Swift, Kotlin native, CarPlay and Android Auto, generated OpenAPI clients; no Kafka on devices | Unchanged | Cross-platform rewrite |
+| Planner | Go; the optimiser is a layered-DAG dynamic programme (ADR-0015), no solver needed | Product owner's choice (2026-10-28); same runtime as telemetry, so one Go template | Python (repo plan), Java |
+| Mobile | React Native (TypeScript), Android 9.0+, iOS 15.5+; CarPlay and Android Auto as thin native modules; generated OpenAPI clients; no Kafka on devices (ADR-0012) | One codebase for both stores | Two native apps |
 | Delivery | Layered non-root images (buildpacks), Argo CD GitOps, Terraform and Helm in `infra-modules`, GitHub Actions | Build once, promote | Hand-run deploys |
 | Observability | OpenTelemetry to Prometheus, Grafana, Loki, Tempo (or the provider's equivalent); Kafka JMX exporter | Open standard | Vendor agent in code |
 | Hosting | Kubernetes in a Turkey region (card P1-02); provider not chosen | Residency of consent and personal data (RC-NFR-002) | Hosting abroad before counsel answers TR-05 |
 
-The project topic lists a payments-gateway reference stack (Java, Node.js, MySQL, AWS, WooCommerce plugins). Where it conflicts with the repo plan (Kotlin, PostgreSQL, Turkey hosting, no merchant plugins) I followed the repo plan. Node.js and MySQL are not used. Its AWS pillars and the 12 factors are used as review lenses.
+The project topic lists a payments-gateway reference stack (Java, Node.js, MySQL, AWS, WooCommerce plugins). Where it conflicts with the repo plan (Java and Go, PostgreSQL, Turkey hosting, no merchant plugins) I followed the repo plan. Node.js and MySQL are not used. Its AWS pillars and the 12 factors are used as review lenses.
 
 ## 2. Application architecture
 
@@ -203,12 +203,12 @@ With two status channels per socket, as in the pilot row, status alone is about 
 ## 8. Inconsistencies found in the existing plan
 
 1. **Missing repos.** Eight cards (L-04, L-05, L-07, L-12 and V-04 to V-07) point at `EV_PNC_loyalty` and `EV_PNC_invoicing`, which are not in the 19-repo plan or in `components.csv`. The packaging check with both added (`tools/components_v2_1.csv`) still has no cycle, 21 repos in all. Suggested card X-12.
-2. **Telemetry runtime.** The README says Go; the rest of the platform is Kotlin. v0.1 of ADR-0012 proposed the JVM for one runtime less; revision 0.2 recommends keeping Go (ADR-0012 item 4; see finding 6 below). X-01 decides.
+2. **Telemetry runtime.** The README says Go; the rest of the platform is Java. v0.1 of ADR-0012 proposed the JVM for one runtime less; revision 0.2 recommends keeping Go (ADR-0012 item 4; see finding 6 below). X-01 decides.
 3. **Vehicle identity** is a separate container in the deck and a module of `plugcharge` in the repo plan. This document follows the repo plan.
 4. **ADR numbering.** P0-05 is titled "ADR-001" while the series runs ADR-0001 to ADR-0007. Rename it when it is written.
 5. **Kafka in the national plan.** The NHS HLD names Kafka for the public side too; that cluster is the public bodies' to run, not ours. This stack covers the EV_PNC_ and Consent services only.
 
-6. **Telemetry is already Go.** C-01 (corridor geometries and EVSE index) is written in Go with a Go CI workflow in the open pull request COPUR/EV_PNC_telemetry#2. v0.1 proposed a move to Kotlin without counting that; revision 0.2 of ADR-0012 keeps Go.
+6. **Telemetry is already Go.** C-01 (corridor geometries and EVSE index) is written in Go with a Go CI workflow in the open pull request COPUR/EV_PNC_telemetry#2. v0.1 proposed a move to the JVM without counting that; revision 0.2 of ADR-0012 keeps Go.
 7. **Compacted grant topic keyed by person.** See the catalogue notes; fixed in 0.2.
 8. **Invoicing could not see the final CDR.** Fixed in 0.2.
 9. **e-Devlet diagrams still name the retired `EV_PNC_consent`.** The Solution design tab of the e-Devlet request doc had it as the e-Devlet client; ADR-0007 gives that role to `EV_PnC_Consent_edevlet-bridge` alone. Fixed in that doc (v0.6).
