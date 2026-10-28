@@ -76,6 +76,25 @@ class EventflowCheckTest(unittest.TestCase):
             self.assertEqual(code, 1, cleanup)
             self.assertIn("R5 ev.payment.a.v1", out)
 
+    def test_unknown_cleanup_fails_r5(self):
+        code, out = run([row("ev.payment.a.v1", "payments", "loyalty", key="paymentId", cleanup="Compact", retention="")])
+        self.assertEqual(code, 1)
+        self.assertIn("R5 ev.payment.a.v1: unknown cleanup 'Compact'", out)
+
+    def test_person_level_compacted_key_needs_full_state_r8(self):
+        for key, note in [("driverRef", ""), ("driver_ref", ""), ("accountId", "handled carefully, fully cached")]:
+            r = row("ev.payment.a.v1", "payments", "loyalty", key=key, cleanup="compact", retention="")
+            r["note"] = note
+            code, out = run([r])
+            self.assertEqual(code, 1, key)
+            self.assertIn("R8 ev.payment.a.v1", out)
+
+    def test_full_state_note_passes_r8(self):
+        r = row("ev.policy.a.v1", "policy-engine", "hub-gateway", key="driverRef", cleanup="compact", retention="")
+        r["note"] = "value is full-state: the whole policy of one driver"
+        code, out = run([r])
+        self.assertEqual(code, 0, out)
+
     def test_personal_data_class_fails_r6(self):
         code, out = run([row("ev.payment.a.v1", "payments", "loyalty", data_class="personal")])
         self.assertEqual(code, 1)

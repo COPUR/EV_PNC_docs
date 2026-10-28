@@ -1,6 +1,6 @@
 # ADR-0008: Kafka is the event backbone; each owner's PostgreSQL stays the record
 
-**Status:** proposed (accept on card X-01) · **Date:** 2026-10-26
+**Status:** proposed (accept on card X-01) · **Date:** 2026-10-26 · **Revision:** 0.2 (audit 2026-10-26: fallback deadline moved from the 7 Dec gate to the end of I4, because X-02 moves to I4)
 
 **Context.** The C4 containers already show Kafka, and the product owner asked for Kafka on the backend. The reasons that hold up are the ones that need a log: a new consumer can replay (the `hub-gateway` read model, the KPI jobs), one fact reaches many consumers (CDR to payments, ledger and analytics), and revocation must reach the hub path within 15 minutes for 99% of cases (RC-REV-002). The load does not need Kafka: about 6 messages per second at the pilot and about 127 at national scale (`02-tech-stack.md` §6, estimates). The team is two or three people or agent roles, so operating cost counts.
 
@@ -21,7 +21,7 @@
 **Consequences.**
 - Gains: replay for read models and KPIs, independent consumers, a clean place for the revocation path, headroom to national scale without re-platforming.
 - Costs: a cluster to run (six small pods at the pilot), a schema registry, outbox and idempotency discipline in every service, and Kafka skills on a small team.
-- B is close and cheaper. **Fallback:** publishing sits behind a port (ADR-0011). If by the 7 Dec gate the cluster does not run with the durability profile and green failure drills (card X-02), the pilot can publish through Postgres outbox tables with HTTP delivery, with no change to event contracts. Revisit then.
+- B is close and cheaper. **Fallback:** publishing sits behind a port (ADR-0011). Services write to the outbox table from day one (P1-07 does so in I3). If by the end of I4 (20 Dec 2026) the cluster does not run with the durability profile and green failure drills (card X-02), the pilot keeps publishing through Postgres outbox tables with HTTP delivery, with no change to event contracts. Revisit then. Nothing on the 7 Dec gate depends on Kafka.
 - The pilot does not need Kafka's throughput. Do not justify tuning or extra partitions by speed.
 - Rejected D because the log is immutable and replicated, which makes KVKK erasure and audit retention harder, and snapshots and upcasting are costs with no pilot benefit.
 

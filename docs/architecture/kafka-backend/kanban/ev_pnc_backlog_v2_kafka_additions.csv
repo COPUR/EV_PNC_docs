@@ -1,25 +1,29 @@
 Epic,Id,Title,Status,Iteration,Phase,Repository,Owner,Points,Human gate,Depends on,Labels,Body
-E0 Programme governance and gates,X-01,"Review and accept ADR-0008 to ADR-0015 and the DATA, APPLICATION, TECHNOLOGY principles; decide the telemetry runtime (Go or Kotlin)",Ready,I3,Phase 0 Discovery,EV_PNC_docs,Product owner,2,yes,,phase-0;product-owner;kafka;human-gate;it:I3,"Acceptance criteria:
+E0 Programme governance and gates,X-01,"Review and accept ADR-0008 to ADR-0015 and the DATA, APPLICATION, TECHNOLOGY principles; decide the telemetry runtime (keep Go, recommended, or Java); decide the planner language (Python in the repo plan, Java or Go) and the Android language",Ready,I3,Phase 0 Discovery,EV_PNC_docs,Product owner,2,yes,,phase-0;product-owner;kafka;human-gate;it:I3,"Acceptance criteria:
 - [ ] Each ADR accepted, changed or rejected in the card thread
-- [ ] Telemetry runtime decided (ADR-0012 item 4); README line of EV_PNC_telemetry follows
+- [ ] Telemetry runtime decided (ADR-0012 item 4, revision 0.2 recommends keeping Go because C-01 is Go); README line of EV_PNC_telemetry follows
 - [ ] Open decisions in architecture/kafka-backend/README.md answered
 - [ ] Counts as one of the six PO gates of I3"
-E3 OCPI eMSP core platform and infra,X-02,"Spike: Kafka 4.x KRaft with Strimzi, durability profile and failure drills",Ready,I3,Phase 1 Core backend,EV_PNC_infra,DevOps agent,5,no,,phase-1;devops-agent;v2-new;kafka;it:I3,"Acceptance criteria:
+E3 OCPI eMSP core platform and infra,X-02,"Spike: Kafka 4.x KRaft with Strimzi, durability profile and failure drills",Ready,I4,Phase 1 Core backend,EV_PNC_infra,DevOps agent,5,no,,phase-1;devops-agent;v2-new;kafka;it:I4,"Acceptance criteria:
 - [ ] 3 brokers and 3 dedicated controllers on any Kubernetes (kind or k3d is enough; the Turkey region comes with P1-02)
 - [ ] RF 3, min.insync.replicas 2, acks=all, idempotence, unclean election off, auto-create off, rack awareness
 - [ ] Drills pass: kill one broker, producers and consumers continue; ISR shrinks and recovers; URP alert fires
 - [ ] Strimzi, Kafka, client and Spring Modulith versions pinned and compatible; findings recorded in ADR-0009
-- [ ] Decision: keep Kafka for the pilot or use the Postgres-outbox fallback of ADR-0008"
-E3 OCPI eMSP core platform and infra,X-03,"Apicurio registry and the first three Avro schemas (location, tariff, EVSE status) for P1-07",Backlog,I3,Phase 1 Core backend,EV_PNC_ocpi-model,Architect agent,3,no,M-01;X-02,phase-1;architect-agent;v2-new;kafka;it:I3,"Acceptance criteria:
+- [ ] KIP-848 consumer protocol tested with static membership, or the reason to stay on the classic protocol recorded
+- [ ] max.compaction.lag.ms set on compacted topics; a tombstone on a quiet topic is compacted within the bound
+- [ ] Spring Boot 4.x line pinned in infra-modules and its open-source support window confirmed (condition for ADR-0012)
+- [ ] Decision by 20 Dec: keep Kafka for the pilot or use the Postgres-outbox fallback of ADR-0008"
+E3 OCPI eMSP core platform and infra,X-03,"Apicurio registry and the first three Avro schemas (location, tariff, EVSE status) for P1-07",Backlog,I4,Phase 1 Core backend,EV_PNC_ocpi-model,Architect agent,3,no,M-01;X-02,phase-1;architect-agent;v2-new;kafka;it:I4,"Acceptance criteria:
 - [ ] Registry runs with BACKWARD_TRANSITIVE and the Confluent-compatible API
-- [ ] Schemas built from ocpi-model; Kotlin and Python types generated
+- [ ] Schemas built from ocpi-model; Java and Python types generated
 - [ ] Envelope header names fixed (ce_id, ce_type, ce_source, ce_time, ce_subject, traceparent, correlationid, dataclass, expires)
 - [ ] Compatibility check passes in CI; a breaking change is rejected
-- [ ] Replay of recorded simulator traffic reads with the new schema"
+- [ ] Replay of recorded simulator traffic reads with the new schema
+- [ ] P1-07 outbox rows are relayed to the three topics"
 E3 OCPI eMSP core platform and infra,X-04,"Topic catalogue as code: topics.csv to KafkaTopic and KafkaUser, eventflow_check in CI",Backlog,later,Phase 1 Core backend,EV_PNC_infra-modules,Architect agent,3,no,X-02;P1-01,phase-1;architect-agent;v2-new;kafka;it:later,"Acceptance criteria:
 - [ ] topics.csv confirmed by the Architect agent (owners, keys, consumers)
 - [ ] KafkaTopic and KafkaUser manifests generated; nightly diff of cluster against git is empty
-- [ ] eventflow_check.py --strict runs in the reusable workflow
+- [ ] eventflow_check.py --strict (eight rules, R8 included) runs in the reusable workflow
 - [ ] WRITE ACL only for the owner of each topic, tested in staging"
 E3 OCPI eMSP core platform and infra,X-05,"Golden-path Spring Boot service template: outbox, idempotent consumer, retry and dead letters, security chain, probes, tracing",Backlog,later,Phase 1 Core backend,EV_PNC_infra-modules,Backend agent,5,no,X-02;X-03,phase-1;backend-agent;v2-new;kafka;it:later,"Acceptance criteria:
 - [ ] templates/spring-service generates a service that publishes through the Modulith publication registry and consumes with a unique (consumer, event id) index
@@ -27,10 +31,10 @@ E3 OCPI eMSP core platform and infra,X-05,"Golden-path Spring Boot service templ
 - [ ] SecurityFilterChain ends in denyAll(); three-way security test included
 - [ ] Testcontainers Kafka sample test
 - [ ] Script opens template-update pull requests on generated repos"
-E5 Mobile app and route planner,X-06,"Python template for the planner: outbox table and relay, envelope headers, contract test against the JVM template",Backlog,later,Phase 3 Mobile + planner,EV_PNC_planner,Planner agent,3,no,X-03;X-05,phase-3;planner-agent;v2-new;kafka;it:later,"Acceptance criteria:
+E5 Mobile app and route planner,X-06,"Python and Go outbox contract: planner template and telemetry, envelope headers, contract test against the JVM template",Backlog,later,Phase 3 Mobile + planner,EV_PNC_planner,Planner agent,3,no,X-03;X-05,phase-3;planner-agent;v2-new;kafka;it:later,"Acceptance criteria:
 - [ ] Same outbox table layout and header names as the JVM template
 - [ ] Trip events published idempotently
-- [ ] Shared contract test passes in both repos"
+- [ ] Shared contract test passes in EV_PNC_planner, EV_PNC_telemetry (Go) and the JVM template"
 E3 OCPI eMSP core platform and infra,X-07,"Redelivery and failure kit in the simulator: duplicate, reorder, crash before commit, poison message, slow consumer",Backlog,later,Phase 1 Core backend,EV_PNC_simulator,QA agent,3,no,X-05;P1-05,phase-1;qa-agent;v2-new;kafka;it:later,"Acceptance criteria:
 - [ ] Kit runs against every consumer in its own CI
 - [ ] A debug consumer prints headers and the dead-letter reason
@@ -41,13 +45,13 @@ E3 OCPI eMSP core platform and infra,X-08,"hub-gateway local read model from bin
 - [ ] ev.policy.policy-changed.v1 replaces the synchronous policy call, or the deviation is recorded"
 "E1 Legal, compliance and consent",X-09,"Event privacy: data-class lint, no-personal-key rule, erasure drill with the DPO",Backlog,later,Phase 1 Core backend,EV_PNC_docs,Compliance agent,3,yes,X-03;K-01,phase-1;compliance-agent;v2-new;kafka;human-gate;waits-external;it:later,"Acceptance criteria:
 - [ ] Schema linter fails a field tagged pii; checker rejects personal keys
-- [ ] Erasure drill: delete mapping, tombstone, compaction within the agreed lag [3 days]
+- [ ] Erasure drill: delete mapping, tombstone every key of the person (grantId, vehicleRef, emaid, tokenUid, upstreamGrantRef, and driverRef on policy-changed); DPO sign-off on the e-Devlet upstream topic (ADR-0013 item 5b), compaction within the agreed lag [3 days] with max.compaction.lag.ms set
 - [ ] DPO sample review of one topic per wave; sign-off stored in the repo
 - [ ] Platform data inventory (P0-17) lists each topic with class and expiry"
 E3 OCPI eMSP core platform and infra,X-10,"Baseline load test and sizing: from defaults, one lever per run, median of three, P99 reported",Backlog,later,Phase 1 Core backend,EV_PNC_infra,QA agent,3,no,X-02;X-05,phase-1;qa-agent;v2-new;kafka;it:later,"Acceptance criteria:
 - [ ] Estimates in 02-tech-stack.md section 6 replaced by measured numbers
 - [ ] Virtual-thread pinning check on the Kafka and JDBC clients
-- [ ] Telemetry runtime question (Go or Kotlin) answered with data if X-01 left it open"
+- [ ] Telemetry runtime question (Go or Java) answered with data if X-01 left it open"
 E3 OCPI eMSP core platform and infra,X-11,"Sustainability proxy metrics: CPU-seconds and GB stored per 1,000 sessions; non-production scales to zero outside test windows",Backlog,later,Phase 1 Core backend,EV_PNC_infra,DevOps agent,2,no,P1-03,phase-1;devops-agent;v2-new;kafka;it:later,"Acceptance criteria:
 - [ ] Dashboard per service
 - [ ] Idle-to-zero job for preproduction

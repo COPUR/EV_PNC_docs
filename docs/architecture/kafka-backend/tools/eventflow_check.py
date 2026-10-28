@@ -9,25 +9,33 @@ Rules checked:
   R3 compacted topics have a key; no key is or contains a personal identifier (VIN, plate, national ID, phone,
      email, name), matched per camelCase or snake_case word, so `vehicleVin` and `driver_phone` fail too
   R4 partitions are 6, 12 or 24 (growth by new topic version, not in-place expansion)
-  R5 delete topics have a retention; compacted topics have none
+  R5 cleanup is delete or compact; delete topics have a retention, compacted topics have none
   R6 personal data class never appears on a topic: only public or pseudonymous
   R7 event-flow graph (owner -> consumer): strongly connected components must be declared feedback loops
+  R8 a compacted topic keyed by a person-level reference (driverRef, accountId) keeps one record per person,
+     so its note must declare the value "full-state" (the whole state of that person); otherwise key by the aggregate id
+     (v0.2: added after the audit found grant-changed keyed by driverRef, which compaction would collapse
+     to the last grant per driver)
 """
 import csv, re, sys
 from collections import defaultdict
 
-SERVICES = {"ocpi-emsp", "hub-gateway", "plugcharge", "consent-registry", "consent-decision", "consent-audit",
+SERVICES = {"ocpi-emsp", "hub-gateway", "plugcharge", "consent-registry", "consent-decision", "consent-audit", "edevlet-bridge",
             "policy-engine", "pricing", "payments", "planner", "telemetry", "loyalty", "invoicing",
             "pilot-analytics", "api-gateway"}
 PII_KEYS = {"vin", "plate", "tckn", "vkn", "national", "phone", "msisdn", "mobile", "gsm", "email", "name",
             "address", "pan", "iban"}
+# Person-level keys as sorted key words: driverRef and driver_ref -> "driverref", accountId -> "accountid".
+PERSON_LEVEL_KEYS = {"".join(sorted(w)) for w in ({"driver", "ref"}, {"account", "id"})}
+FULL_STATE = re.compile(r"\bfull-state\b", re.I)  # R8 waiver: the note declares the value as the full state
 DECLARED_LOOPS = [frozenset({"planner", "telemetry"})]  # arrivals feed occupancy profiles, availability feeds planning
 
 def key_words(key):
     """Split a key into lower-case words: vehicleVin -> {vehicle, vin}, driver_phone -> {driver, phone}."""
     return {w.lower() for w in re.findall(r"[A-Z]?[a-z0-9]+|[A-Z]+(?![a-z])", key)}
 
-rows = list(csv.DictReader(open(sys.argv[1])))
+with open(sys.argv[1], newline="") as f:
+    rows = list(csv.DictReader(f))
 fail = []
 g = defaultdict(set)
 owner_of = {}
@@ -43,8 +51,12 @@ for r in rows:
         g[o].add(c)
     if r["cleanup"] == "compact" and not r["key"]: fail.append(f"R3 {t}: compacted without key")
     if key_words(r["key"]) & PII_KEYS: fail.append(f"R3 {t}: personal identifier in key {r['key']}")
+    if r["cleanup"] == "compact" and "".join(sorted(key_words(r["key"]))) in PERSON_LEVEL_KEYS \
+            and not FULL_STATE.search(r["note"]):
+        fail.append(f"R8 {t}: compacted on person-level key {r['key']} without a full-state value; key by the aggregate id")
     if int(r["partitions"]) not in (6, 12, 24): fail.append(f"R4 {t}: partitions {r['partitions']}")
-    if (r["cleanup"] == "delete") == (not r["retention"]): fail.append(f"R5 {t}: cleanup {r['cleanup']} with retention '{r['retention']}'")
+    if r["cleanup"] not in ("delete", "compact"): fail.append(f"R5 {t}: unknown cleanup '{r['cleanup']}'")
+    elif (r["cleanup"] == "delete") == (not r["retention"]): fail.append(f"R5 {t}: cleanup {r['cleanup']} with retention '{r['retention']}'")
     if r["data_class"] not in ("public", "pseudonymous"): fail.append(f"R6 {t}: data class {r['data_class']}")
     if not cons: fail.append(f"R2 {t}: no consumer (orphan)")
 topics_by_owner = defaultdict(list)

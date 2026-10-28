@@ -29,6 +29,6 @@
 **Consequences.**
 - OR-Tools is not needed for the pilot. If the Planner agent wants it for ferry timetabling, it is a bounded add-on.
 - The energy model and weather inputs are separate inputs to the DP (`tb_energy_model.py` supplies fitted factors; mean cross-validation error 5.6%).
-- The DP is a pure function, so it is testable without Kafka and can move to Kotlin later with the same oracle.
+- The DP is a pure function, so it is testable without Kafka and can move to Java or Go later with the same oracle.
 
 **Sources.** algorithms-data-structures (DP four steps, shortest paths by weight sign and graph shape, union-find, hashing); thealgorithms-java-trees-graph-structures (review findings, SCC, Kahn); liang-java-data-structure-implementations (hashing, graphs); `corridor-pilot/spec.md`; `engineering-briefing/mobile-app/README.md`.
