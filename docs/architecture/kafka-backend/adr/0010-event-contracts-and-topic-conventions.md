@@ -28,7 +28,7 @@
 **Consequences.**
 - Schema changes are pull requests reviewed by consumer owners. A consumer-driven contract test per consumer runs in the producer's CI.
 - Avro codegen is part of the `ocpi-model` build; its version bump rules (M-02) apply to schemas.
-- The planner (Python) uses the same schemas through an Avro library and the same header names.
+- The planner and telemetry (Go) use the same schemas through an Avro library and the same header names.
 - Compatibility mode and Apicurio behaviour are checked in spike X-03 against a replay of recorded simulator traffic.
 - Header-based envelope keeps payloads as pure facts; the cost is that tools must show headers when debugging. A debug consumer in the simulator prints them.
 

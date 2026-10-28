@@ -24,6 +24,6 @@
 **Consequences.**
 - No new repo and no packaging violation. The 19-repo plan gains only the two repos already implied by cards (`loyalty`, `invoicing`; card X-12).
 - Divergence is possible; the conformance tests and template-update pull requests are the guard.
-- The Python planner has its own small template.
+- The Go services (planner, telemetry) have their own small template.
 
 **Sources.** `repo-plan/v2/tools/packaging_check.py` (run twice, outputs in `evidence/`); agile-ppp-packaging-principles via `repo-plan/v2/README.md` §2; microservices-and-ddd (03a code sharing, 02a).

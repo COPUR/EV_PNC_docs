@@ -7,9 +7,9 @@
 | Repo | Change | Driven by |
 |---|---|---|
 | `EV_PNC_docs` | Add `docs/architecture/` (principles, stack) and ADR-0008 to 0015, which live under `docs/architecture/kafka-backend/adr/` until P0-02 moves the whole ADR series into `docs/adr/`. Add `topics.csv` and `eventflow_check.py` under `tools/`. Add the loyalty and invoicing rows to `components.csv`. Put the relationship labels of stack §2.1 into the context map (P0-16). Rename P0-05 "ADR-001" to ADR-0016 and reserve ADR-0017 for V-01 (invoice issuer). P0-02 then keeps the whole series in `docs/adr/` with an index: 0001 to 0006 from `roaming-hubs/specs/adr/`, 0007 from `consent-boundary-review.md` §8, 0008 to 0015 from here | all ADRs |
-| `EV_PNC_infra-modules` | Modules: Strimzi operator, Kafka cluster with node pools, `KafkaTopic` and `KafkaUser` generated from `topics.csv`, Apicurio Registry. `templates/spring-service` and a small Python template. Reusable workflow steps: schema compatibility, topic manifest diff, `eventflow_check --strict`, licence scan, redelivery kit | 0009, 0010, 0014 |
+| `EV_PNC_infra-modules` | Modules: Strimzi operator, Kafka cluster with node pools, `KafkaTopic` and `KafkaUser` generated from `topics.csv`, Apicurio Registry. `templates/spring-service` and a small Go template. Reusable workflow steps: schema compatibility, topic manifest diff, `eventflow_check --strict`, licence scan, redelivery kit | 0009, 0010, 0014 |
 | `EV_PNC_infra` | Kafka environment per stage, `KafkaUser` certificates in the key vault partitions, dashboards and alerts (URP, ISR shrinks, lag SLOs, publish lag, revocation time), restore test, preproduction idle-to-zero | 0009 |
-| `EV_PNC_ocpi-model` | Avro event schemas for the 22 topics, `Money` and `EventTime` types, envelope header constants, Java and Python codegen (M-01 already asks for both). Schema changes follow M-02 rules | 0010 |
+| `EV_PNC_ocpi-model` | Avro event schemas for the 22 topics, `Money` and `EventTime` types, envelope header constants, Java and Go codegen (M-01 asks for the generated types). Schema changes follow M-02 rules | 0010 |
 | `EV_PNC_ocpi-emsp` | README: the Spring Boot 3 stack line becomes "Java and Spring Boot 4.x" (ADR-0012); Kafka via the Modulith publication registry; single writer of six topics including session and CDR for all channels; ingest port for hub CDRs; consumes grant, policy and contract changes so revoked grants and bindings invalidate tokens at CPOs | 0008, 0010, 0011, 0012 |
 | `EV_PNC_hub-gateway` | README: local read model from binding, contract, grant and policy topics; publishes status and authorization decisions; hub CDRs go to the ocpi-emsp ingest port | 0011, AP-5 |
 | `EV_PNC_telemetry` | Stays Go (ADR-0012 revision 0.2; C-01 is Go in PR #2). README line becomes "Go, PostgreSQL with TimescaleDB and PostGIS, Redis-compatible cache, Kafka"; outbox table, header names and redelivery kit match the JVM template through the shared contract test (X-06). Consumes five topics, owns one | 0012 |
@@ -18,7 +18,7 @@
 | `EV_PNC_plugcharge` | Owns `contract-changed` and `vehicle-binding-changed`; no VIN or plate in payloads; recipient resolver API | 0013 |
 | `EV_PNC_payments` | Owns `payment-state-changed`; one capture per `paymentId`; idempotent consumer of `cdr-received`; synchronous hold and redeem calls to loyalty | 0011 |
 | `EV_PNC_pricing`, `EV_PNC_policy-engine` | Pricing consumes tariffs and publishes price sheets; policy publishes `policy-changed` | 0010 |
-| `EV_PNC_planner` | Python outbox and envelope; DP per ADR-0015 with oracle test; consumes availability and price sheets; publishes trip state and arrivals; positions arrive over HTTP only | 0011, 0013, 0015 |
+| `EV_PNC_planner` | Go (decided 2026-10-28; was Python in the repo plan): outbox and envelope; DP per ADR-0015 with oracle test; consumes availability and price sheets; publishes trip state and arrivals; positions arrive over HTTP only | 0011, 0013, 0015 |
 | `EV_PNC_api-gateway` | Spring Cloud Gateway (the one reactive component); push dispatcher is an open item | 0012 |
 | `EV_PNC_mobile` | No Kafka. Generated clients only | 0012 |
 | `EV_PNC_loyalty`, `EV_PNC_invoicing` | Create (card X-12). Java, template-generated. The customer-profile module lives in `loyalty`. `invoicing` consumes `cdr-received` and `payment-state-changed` | 0011, 0014 |
@@ -59,7 +59,7 @@ Same columns as the loyalty additions file, epics included.
 | X-03 | Registry and first three schemas for P1-07 | I4 (was I3) | 3 |
 | X-04 | Topic catalogue as code and CI checks | later | 3 |
 | X-05 | Golden-path Spring service template | later | 5 |
-| X-06 | Python template for the planner | later | 3 |
+| X-06 | Go template for the planner and telemetry | later | 3 |
 | X-07 | Redelivery and failure kit | later | 3 |
 | X-08 | hub-gateway read model and latency budget test | later | 5 |
 | X-09 | Event privacy lint and erasure drill with the DPO | later | 3 |

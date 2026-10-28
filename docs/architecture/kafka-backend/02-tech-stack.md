@@ -14,13 +14,13 @@
 | Publishing | Transactional outbox: Spring Modulith event publication registry with Kafka externalisation; Debezium outbox later (ADR-0011) | No dual writes, no custom framework | Direct `KafkaTemplate.send` after commit |
 | Consuming | Spring for Apache Kafka, manual ack after processing, idempotent by a unique key, retry topics then a per-group dead-letter topic | At-least-once made safe | Auto-commit, blocking retries |
 | Stream processing | None at day one. Kafka Streams only for a windowed or stateful join with a written reason | Plain consumers plus Postgres upserts are simpler to run | ksqlDB, Flink |
-| Service runtime | Java 25 (LTS), Spring Boot 4.x, Spring MVC with virtual threads (ADR-0012); telemetry stays Go for now, planner Python until the product owner decides Java or Go | One paved road; Boot 3.5 left open-source support on 30 Jun 2026 | WebFlux everywhere, starting on Boot 3 |
+| Service runtime | Java 25 (LTS), Spring Boot 4.x, Spring MVC with virtual threads (ADR-0012); telemetry and planner are Go | One paved road; Boot 3.5 left open-source support on 30 Jun 2026 | WebFlux everywhere, starting on Boot 3 |
 | Edge | `api-gateway` on Spring Cloud Gateway (reactive), OIDC/JWT, rate limits | The one place where many concurrent I/O-bound calls justify reactive | Custom servlet gateway |
 | Persistence | PostgreSQL, one schema per service, Flyway; Spring Data JDBC for aggregates, `JdbcClient` or jOOQ for read models | Aggregate-oriented, no lazy-loading traps (SB 06b) | JPA by default, MySQL |
 | Time series | TimescaleDB on PostgreSQL for telemetry history | Already in the telemetry README; two seasons of history (CP-DATA-002) | A second database engine |
 | Geo | PostGIS for corridor geometry and "within 2 km"; H3 resolution 8 for location privacy | Spec asks for both (CP-GEO-002, CP-KPI-004) | Hand-written k-d tree |
 | Cache | Redis-compatible cache (Valkey if self-hosted, licence check) plus Caffeine in the process | Only data that can be rebuilt | Cache as a store |
-| Planner | Python, FastAPI, NumPy; the optimiser is a layered-DAG dynamic programme (ADR-0015); OR-Tools optional | Fast model iteration; the DP does not need a solver | Rewrite in Java now |
+| Planner | Go; the optimiser is a layered-DAG dynamic programme (ADR-0015), no solver needed | Product owner's choice (2026-10-28); same runtime as telemetry, so one Go template | Python (repo plan), Java |
 | Mobile | React Native (TypeScript), Android 9.0+, iOS 15.5+; CarPlay and Android Auto as thin native modules; generated OpenAPI clients; no Kafka on devices (ADR-0012) | One codebase for both stores | Two native apps |
 | Delivery | Layered non-root images (buildpacks), Argo CD GitOps, Terraform and Helm in `infra-modules`, GitHub Actions | Build once, promote | Hand-run deploys |
 | Observability | OpenTelemetry to Prometheus, Grafana, Loki, Tempo (or the provider's equivalent); Kafka JMX exporter | Open standard | Vendor agent in code |
