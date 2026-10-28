@@ -19,7 +19,7 @@
 2. **Apache Kafka 4.x in KRaft, run by Strimzi on Kubernetes in a Turkey region.** 3 brokers, 3 controllers, RF 3, min ISR 2, `acks=all`, idempotent, one durability profile (ADR-0009).
 3. **Avro in an Apicurio registry, headers envelope, `ev.<context>.<fact>.v<N>` names, one writer per topic enforced by ACL; compacted topics keyed by the aggregate id** (ADR-0010).
 4. **Transactional outbox (Spring Modulith), idempotent consumers, bounded retries to per-group dead letters, sagas for money and trips** (ADR-0011).
-5. **Java 25 on Spring Boot 4.x, MVC with virtual threads, reactive only at the gateway; Spring Data JDBC; telemetry is Go (C-01 is already Go); the planner is Python in the repo plan and needs your decision, Java or Go** (ADR-0012, revision 0.3: Kotlin removed).
+5. **Java 25 on Spring Boot 4.x, MVC with virtual threads, reactive only at the gateway; Spring Data JDBC; telemetry is Go (C-01 is already Go); the planner is Python in the repo plan and needs your decision, Java or Go** (ADR-0012, revision 0.3).
 6. **No personal data on topics:** only public or pseudonymous, no raw location, no VIN or plate (ADR-0013).
 7. **No shared platform library:** a template plus off-the-shelf libraries. A `platform-kit` fails the packaging check (zone of pain) (ADR-0014).
 8. **Planner: DP over stop × SoC bucket on a route-ordered DAG, brute-force oracle, no code from teaching libraries** (ADR-0015).
@@ -68,4 +68,4 @@ A second review checked this package against ADR-0007, repo-plan v2, kanban v2, 
 
 ## Revision 0.3 (2026-10-28)
 
-Kotlin removed from the backend stack at the product owner's instruction: the backend languages are Java and Go. Kotlin had come from the repo-plan READMEs, not from the product owner, and ADR-0012 revisions 0.1 and 0.2 kept it. Java 25 replaces it in ADR-0012, principle TP-2, the stack table, the generated event classes and the cards. Open: the planner language (Python in the repo plan) and the Android language.
+The product owner set the stack: backend Java and Go, mobile React Native (Android 9.0+, iOS 15.5+). The earlier JVM-language choice came from the repo-plan READMEs, not from the product owner, and ADR-0012 revisions 0.1 and 0.2 kept it. Java 25 replaces it in ADR-0012, principle TP-2, the stack table, the generated event classes and the cards. Open: the planner language (Python in the repo plan).

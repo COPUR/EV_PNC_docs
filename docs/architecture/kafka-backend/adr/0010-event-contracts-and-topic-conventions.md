@@ -8,7 +8,7 @@
 
 | Option | For | Against |
 |---|---|---|
-| A Avro with a registry | Compact, strong evolution rules, the Kafka books' default, generated Java classes | No native Swift/Kotlin story, but devices never read Kafka |
+| A Avro with a registry | Compact, strong evolution rules, the Kafka books' default, generated Java classes | No native mobile story, but devices never read Kafka |
 | B Protobuf with a registry | One IDL with gRPC; good codegen | Adds a second IDL because REST stays OpenAPI; evolution rules need more care |
 | C JSON Schema | Already used for receipts | Larger, weaker enforcement, easy to drift |
 

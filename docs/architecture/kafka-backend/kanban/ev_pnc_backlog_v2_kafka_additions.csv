@@ -1,5 +1,5 @@
 Epic,Id,Title,Status,Iteration,Phase,Repository,Owner,Points,Human gate,Depends on,Labels,Body
-E0 Programme governance and gates,X-01,"Review and accept ADR-0008 to ADR-0015 and the DATA, APPLICATION, TECHNOLOGY principles; decide the telemetry runtime (keep Go, recommended, or Java); decide the planner language (Python in the repo plan, Java or Go) and the Android language",Ready,I3,Phase 0 Discovery,EV_PNC_docs,Product owner,2,yes,,phase-0;product-owner;kafka;human-gate;it:I3,"Acceptance criteria:
+E0 Programme governance and gates,X-01,"Review and accept ADR-0008 to ADR-0015 and the DATA, APPLICATION, TECHNOLOGY principles; decide the telemetry runtime (keep Go, recommended, or Java); decide the planner language (Python in the repo plan, Java or Go)",Ready,I3,Phase 0 Discovery,EV_PNC_docs,Product owner,2,yes,,phase-0;product-owner;kafka;human-gate;it:I3,"Acceptance criteria:
 - [ ] Each ADR accepted, changed or rejected in the card thread
 - [ ] Telemetry runtime decided (ADR-0012 item 4, revision 0.2 recommends keeping Go because C-01 is Go); README line of EV_PNC_telemetry follows
 - [ ] Open decisions in architecture/kafka-backend/README.md answered

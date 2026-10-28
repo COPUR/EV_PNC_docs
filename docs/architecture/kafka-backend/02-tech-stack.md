@@ -20,8 +20,8 @@
 | Time series | TimescaleDB on PostgreSQL for telemetry history | Already in the telemetry README; two seasons of history (CP-DATA-002) | A second database engine |
 | Geo | PostGIS for corridor geometry and "within 2 km"; H3 resolution 8 for location privacy | Spec asks for both (CP-GEO-002, CP-KPI-004) | Hand-written k-d tree |
 | Cache | Redis-compatible cache (Valkey if self-hosted, licence check) plus Caffeine in the process | Only data that can be rebuilt | Cache as a store |
-| Planner | Python, FastAPI, NumPy; the optimiser is a layered-DAG dynamic programme (ADR-0015); OR-Tools optional | Fast model iteration; the DP does not need a solver | Rewrite in Kotlin now |
-| Mobile | Swift native; the Android language is the product owner's decision (Kotlin in the repo plan); CarPlay and Android Auto, generated OpenAPI clients; no Kafka on devices | Unchanged | Cross-platform rewrite |
+| Planner | Python, FastAPI, NumPy; the optimiser is a layered-DAG dynamic programme (ADR-0015); OR-Tools optional | Fast model iteration; the DP does not need a solver | Rewrite in Java now |
+| Mobile | React Native (TypeScript), Android 9.0+, iOS 15.5+; CarPlay and Android Auto as thin native modules; generated OpenAPI clients; no Kafka on devices (ADR-0012) | One codebase for both stores | Two native apps |
 | Delivery | Layered non-root images (buildpacks), Argo CD GitOps, Terraform and Helm in `infra-modules`, GitHub Actions | Build once, promote | Hand-run deploys |
 | Observability | OpenTelemetry to Prometheus, Grafana, Loki, Tempo (or the provider's equivalent); Kafka JMX exporter | Open standard | Vendor agent in code |
 | Hosting | Kubernetes in a Turkey region (card P1-02); provider not chosen | Residency of consent and personal data (RC-NFR-002) | Hosting abroad before counsel answers TR-05 |
