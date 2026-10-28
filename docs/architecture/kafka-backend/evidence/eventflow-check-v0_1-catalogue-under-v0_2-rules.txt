@@ -1,0 +1,3 @@
+RULE FAILURES:
+   R8 ev.consent.grant-changed.v1: compacted on person-level key driverRef without a full-state value; key by the aggregate id
+   R8 ev.policy.policy-changed.v1: compacted on person-level key driverRef without a full-state value; key by the aggregate id
